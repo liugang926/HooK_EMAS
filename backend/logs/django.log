@@ -1,0 +1,414 @@
+WARNING 2026-01-07 11:13:11,812 views 40 125921730554752 Asset create request data: {'name': '测试电脑', 'category': None, 'brand': '', 'model': '', 'serial_number': '', 'original_value': 5999, 'using_user': None, 'using_department': None, 'location': None, 'status': 'idle', 'remark': ''}
+WARNING 2026-01-07 11:13:11,821 views 40 125921730554752 Using first company: 榛樿鍏徃
+WARNING 2026-01-07 11:13:11,823 views 40 125921730554752 Generated asset_code: ZC202601071B6F5BAD
+ERROR 2026-01-08 11:53:46,068 exceptions 42 131000034421632 [UserViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:27:09,307 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:28:56,477 exceptions 40 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:29:07,265 exceptions 43 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:29:08,073 exceptions 43 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:29:41,172 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:29:55,613 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:30:02,892 exceptions 41 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:30:14,489 exceptions 43 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:30:15,163 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:30:16,506 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:30:29,519 exceptions 42 126291215711104 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:32:22,890 exceptions 41 136360490146688 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:32:28,738 exceptions 42 136360490146688 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:32:29,399 exceptions 41 136360490146688 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:32:30,661 exceptions 41 136360490146688 [CompanyViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 15:40:43,078 exceptions 47 124451639077760 [VerifyCredentialsView] Exception: JSON parse error - Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/parsers.py", line 66, in parse
+    return json.load(decoded_stream, parse_constant=parse_constant)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/utils/json.py", line 31, in load
+    return json.load(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+           ^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/json/__init__.py", line 359, in loads
+    return cls(**kw).decode(s)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/json/decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+               ^^^^^^^^^^^^^^^^^^^^^^
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/app/apps/accounts/views.py", line 44, in post
+    username = request.data.get('username')
+               ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 221, in data
+    self._load_data_and_files()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 284, in _load_data_and_files
+    self._data, self._files = self._parse()
+                              ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 359, in _parse
+    parsed = parser.parse(stream, media_type, self.parser_context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/parsers.py", line 68, in parse
+    raise ParseError('JSON parse error - %s' % str(exc))
+rest_framework.exceptions.ParseError: JSON parse error - Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+ERROR 2026-01-08 15:47:01,236 exceptions 49 124451639077760 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:47:05,196 exceptions 49 124451639077760 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:47:12,800 exceptions 46 124451639077760 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:48:14,575 exceptions 41 139533192244096 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:48:19,892 exceptions 43 139533192244096 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:49:44,408 exceptions 40 139533192244096 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:50:14,764 exceptions 40 139533192244096 [VerifyCredentialsView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:51:39,212 exceptions 40 138101236591488 [CompleteLoginView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 15:53:51,864 exceptions 40 138101236591488 [CompleteLoginView] Exception: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 330, in perform_authentication
+    request.user
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 232, in user
+    self._authenticate()
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 130, in authenticate
+    self.enforce_csrf(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/authentication.py", line 148, in enforce_csrf
+    raise exceptions.PermissionDenied('CSRF Failed: %s' % reason)
+rest_framework.exceptions.PermissionDenied: CSRF Failed: Origin checking failed - http://localhost:3000 does not match any trusted origins.
+ERROR 2026-01-08 17:29:42,783 exceptions 43 133491311287168 [CodeRuleViewSet] Exception: 身份认证信息未提供。
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: 身份认证信息未提供。
+ERROR 2026-01-08 18:06:12,557 exceptions 43 125988584205184 [FieldDefinitionViewSet] Exception: {'non_field_errors': [ErrorDetail(string='字段 module, field_key 必须能构成唯一集合。', code='unique')]}
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/mixins.py", line 18, in create
+    serializer.is_valid(raise_exception=True)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='字段 module, field_key 必须能构成唯一集合。', code='unique')]}
+ERROR 2026-01-08 18:06:20,670 exceptions 41 125988584205184 [FieldDefinitionViewSet] Exception: {'non_field_errors': [ErrorDetail(string='字段 module, field_key 必须能构成唯一集合。', code='unique')]}
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/mixins.py", line 18, in create
+    serializer.is_valid(raise_exception=True)
+  File "/usr/local/lib/python3.11/site-packages/rest_framework/serializers.py", line 233, in is_valid
+    raise ValidationError(self.errors)
+rest_framework.exceptions.ValidationError: {'non_field_errors': [ErrorDetail(string='字段 module, field_key 必须能构成唯一集合。', code='unique')]}

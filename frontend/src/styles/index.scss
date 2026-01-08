@@ -1,0 +1,206 @@
+// 全局样式
+:root {
+  --el-color-primary: #3b82f6;
+  --el-color-primary-light-3: #6ba3f7;
+  --el-color-primary-light-5: #9dc4f9;
+  --el-color-primary-light-7: #c5dcfb;
+  --el-color-primary-light-8: #d9ebfc;
+  --el-color-primary-light-9: #ecf5fe;
+  --el-color-primary-dark-2: #2563eb;
+  --theme-sidebar-bg: linear-gradient(180deg, #1e3a5f 0%, #0f172a 100%);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background-color: #f5f7fa;
+  transition: background-color 0.3s ease;
+}
+
+#app {
+  height: 100%;
+}
+
+// 深色主题
+body.dark-theme {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  
+  .el-card {
+    background-color: #1e293b;
+    border-color: #334155;
+    
+    .el-card__header {
+      border-bottom-color: #334155;
+    }
+  }
+  
+  .el-table {
+    background-color: #1e293b;
+    color: #e2e8f0;
+    
+    th.el-table__cell {
+      background-color: #334155;
+      color: #e2e8f0;
+    }
+    
+    tr {
+      background-color: #1e293b;
+      
+      &:hover > td.el-table__cell {
+        background-color: #334155;
+      }
+    }
+    
+    td.el-table__cell {
+      border-bottom-color: #334155;
+    }
+  }
+  
+  .el-input__wrapper {
+    background-color: #334155;
+    box-shadow: 0 0 0 1px #475569 inset;
+  }
+  
+  .el-input__inner {
+    color: #e2e8f0;
+  }
+  
+  .el-dialog {
+    background-color: #1e293b;
+    
+    .el-dialog__header {
+      border-bottom: 1px solid #334155;
+    }
+    
+    .el-dialog__title {
+      color: #e2e8f0;
+    }
+  }
+  
+  .el-form-item__label {
+    color: #94a3b8;
+  }
+  
+  .el-select-dropdown {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+  
+  .el-select-dropdown__item {
+    color: #e2e8f0;
+    
+    &:hover {
+      background-color: #334155;
+    }
+  }
+  
+  .el-pagination {
+    .el-pager li {
+      background-color: #334155;
+      color: #e2e8f0;
+      
+      &.is-active {
+        background-color: var(--el-color-primary);
+      }
+    }
+  }
+  
+  .el-breadcrumb__inner {
+    color: #94a3b8;
+  }
+  
+  .layout-header {
+    background: #1e293b !important;
+    border-bottom-color: #334155 !important;
+  }
+  
+  .layout-main {
+    background-color: #0f172a !important;
+  }
+}
+
+// 滚动条样式
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}
+
+// 通用类
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// NProgress 样式覆盖
+#nprogress .bar {
+  background: #409eff !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #409eff, 0 0 5px #409eff !important;
+}
+
+// 侧边栏菜单全局样式修复 - 使用更高优先级选择器
+.layout-aside .sidebar-menu .el-menu-item.is-active,
+.el-menu.sidebar-menu .el-menu-item.is-active {
+  background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%) !important;
+  color: #fff !important;
+}
+
+// 二级菜单样式
+.layout-aside .sidebar-menu .el-menu--inline,
+.el-menu.sidebar-menu .el-menu--inline {
+  background: rgba(0, 0, 0, 0.3) !important;
+  
+  .el-menu-item {
+    color: rgba(255, 255, 255, 0.7) !important;
+    padding-left: 50px !important;
+    background: transparent !important;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: #fff !important;
+    }
+    
+    &.is-active {
+      background: linear-gradient(90deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%) !important;
+      color: #fff !important;
+    }
+  }
+}

@@ -1,0 +1,104 @@
+# 企业固定资产管理系统 (EAMS) 开发规约（修订版）
+
+
+## 1. 核心架构原则 (Architecture)
+- **前后端分离**：后端使用 Django + DRF，前端使用 Vue 3 (Setup Script) + TypeScript。  
+- **Service Layer 模式**：禁止在 Django View 中编写业务逻辑。所有业务（如资产折旧计算、调拨审批流）必须封装在 `backend/services/` 目录下。  
+- **适配器模式**：所有第三方系统（企微、钉钉、飞书、ERP）的集成必须通过 `backend/adapters/` 目录下的统一接口实现。  
+
+
+## 2. 后端开发标准 (Django)
+- **模型规范**：  
+  - 所有 Model 必须继承 `BaseModel` (包含 `created_at`, `updated_at`, `is_deleted`, `created_by`)。  
+  - 金额字段必须使用 `DecimalField(max_digits=19, decimal_places=4)`。  
+  - 禁止物理删除，必须实现 `soft_delete` 逻辑（如 `delete()` 方法标记为`is_deleted=True`并记录删除人）。  
+- **数据库操作**：  
+  - 涉及多表更新的操作必须包裹在 `@transaction.atomic` 装饰器中，确保原子性。  
+  - 列表查询必须优化 N+1 问题，使用 `select_related`（外键关联）或 `prefetch_related`（多对多关联）。  
+- **Redis 缓存**：  
+  - 第三方系统的 AccessToken 必须存储在 Redis 中，设置合理过期时间（如 7200 秒），并使用 `django-redis` 封装缓存逻辑。  
+  - 高频访问的资产基础数据（如资产类别、部门信息）必须使用 Redis 缓存，减少数据库查询次数。  
+
+
+## 3. 前端交互逻辑标准 (Vue 3)
+- **逻辑提取**：  
+  - 组件 `<script>` 长度禁止超过 100 行。复杂交互逻辑（如资产导入、批量操作）必须提取到 `@/composables`（如 `useAssetImport`、`useBatchOperation`）。  
+  - 单个函数长度禁止超过 80 行，超过则抽取为子函数（如将表单验证逻辑拆分为 `validateName`、`validateCode` 等）。  
+- **类型安全**：  
+  - 禁止使用 `any`。所有 API 响应必须在 `@/types` 中定义 Interface（如 `Asset`、`User`、`Approval`），确保类型一致性。  
+  - 组件 Props 和 Emits 必须使用 TypeScript 类型定义（如 `defineProps<{ asset: Asset }>()`）。  
+- **状态管理**：  
+  - 跨页面共享的数据（如用户信息、全局配置）使用 Pinia 管理（如 `userStore`、`configStore`）。  
+  - 资产状态流转（如“在用”→“调拨中”→“已调拨”）使用常量/枚举维护（如 `ASSET_STATUS = { IN_USE: 1, TRANSFERRING: 2, TRANSFERRED: 3 }`），避免硬编码。  
+
+
+## 4. 集成与工程性管理
+- **三方集成**：  
+  - 新增集成平台时，必须继承 `BasePlatformAdapter` 类，实现 `get_user_info`（获取第三方用户信息）和 `send_notification`（发送通知）方法，确保接口统一。  
+  - 第三方 API 密钥、回调地址等敏感信息必须从 `.env` 文件读取，禁止硬编码。  
+- **代码封装**：  
+  - API 请求统一封装在 `frontend/src/api`（如 `assetApi`、`userApi`），包含拦截器处理 401（ token 过期）、403（权限不足）和业务错误码（如“资产不存在”返回 404）。  
+  - 后端异常必须捕获并返回统一 JSON 格式：`{"code": 400, "msg": "错误信息", "data": null}`（如 `ValidationError` 返回字段错误信息）。  
+
+
+## 5. Cursor 协作指令 (AI Interaction)
+- **审查逻辑**：生成代码前，必须检查现有 `services/`（后端）或 `composables/`（前端）是否有可复用代码（如已有的 `depreciationCalculate` 服务），避免重复造轮子。  
+- **文档同步**：生成新 API 或组件后，必须同步更新对应的 Markdown 文档（如 `docs/api/asset.md`、`docs/components/AssetList.md`），确保文档与代码一致。  
+- **注释要求**：  
+  - 复杂财务公式（如直线折旧法：`年折旧额 = (原值 - 残值) / 使用年限`）必须在代码上方标注数学公式及业务逻辑说明（如“残值为资产报废时的预计价值”）。  
+  - 代码注释必须使用英文（如 `# Calculate annual depreciation using straight-line method`），会话过程显示中文。  
+
+
+## 6. 自动化验收标准 (Testing & Verification)
+
+### E2E 验收要求 (Playwright/Cypress)
+- **覆盖核心路径**：每一项核心业务（如资产入库、三方系统同步、报废审批）必须包含 `.spec.ts` 验收脚本（如 `assetCheckIn.spec.ts`、`thirdPartySync.spec.ts`）。  
+- **浏览器环境**：测试必须在 Headless 模式下运行，检查以下内容：  
+  1. UI 元素是否正确加载（如 Loading 动画消失后再进行操作）；  
+  2. API 调用是否触发（拦截请求并校验 Payload，如资产入库时传递的 `asset_name`、`code` 是否正确）；  
+  3. 成功/失败提示是否弹出（如“资产入库成功”的 Toast、“同步失败”的 Modal）。  
+
+### AI 操作指令 (Instruction for AI)
+1. **生成代码后**：立即运行 `npx playwright test`（E2E 测试）或 `pytest`（单元测试），确保代码正确性。  
+2. **分析失败结果**：如果测试失败，禁止询问用户，必须自行阅读错误日志（Terminal Output）或 Playwright Trace Log（如“元素未找到”可能是选择器错误，“API 500”可能是后端逻辑错误），修复后重新运行测试。  
+3. **性能验收**：通过浏览器控制台（Network 标签）检查是否存在冗余 API 请求（如重复获取资产列表），优化 Redis 缓存策略（如设置缓存过期时间）。  
+
+
+## 7. 容器化环境规范 (Docker Infrastructure)
+- **环境隔离**：开发环境完全运行在 Docker 中，所有配置文件（如 `docker-compose.yml`、`nginx.conf`）必须使用容器服务名（如 `asset_db`、`asset_redis`），禁止使用 `localhost`。  
+- **服务拓扑**：  
+  - 数据库：`asset_db`（Postgres 15，端口 5432）——存储资产、用户等核心数据；  
+  - 缓存/消息中间件：`asset_redis`（Redis 7，端口 6379）——缓存高频数据（如资产基础信息）、处理异步任务（如折旧计算队列）；  
+  - 异步任务 worker：`asset_celery_worker`（基于 Django 环境）——处理耗时任务（如月度折旧计算、报表生成）。  
+- **环境变量**：所有敏感配置（数据库密码、三方 Key、JWT 密钥）必须从 `.env` 文件读取（如 `.env.development`、`.env.production`），禁止硬编码。示例 `.env` 条目：  
+  ```env
+  DB_NAME=asset_db
+  DB_USER=admin
+  DB_PASSWORD=SecurePass123!
+  REDIS_URL=redis://asset_redis:6379/0
+  WECHAT_CORP_ID=wx1234567890abcdef
+  JWT_SECRET=jwt_secret_key_here
+  ``` 
+- **测试验证**：   
+  - 前端：http://localhost:3000/ 
+  - 后端：http://localhost:8000/api/
+  - 环境：Docker 
+  - 账号admin 密码admin123
+  
+## 8. 代码文件长度与拆分规范
+- **文件长度限制**：  
+  - 所有代码文件（包括后端 `.py`、前端 `.vue`/`.ts`）的长度禁止超过 500 行。超过此阈值的文件必须考虑拆分，以提升可维护性和扩展性。
+- **拆分原则**：  
+  - **按功能拆分**：将同一模块内的不同功能抽取为独立文件（如后端 `asset_service.py` 拆分为 `asset_create.py`、`asset_update.py`、`asset_delete.py`；前端 `AssetList.vue` 拆分为 `AssetFilter.vue`（筛选逻辑）、`AssetTable.vue`（表格展示）、`AssetActions.vue`（操作按钮））。
+  - **区分公共与私有函数**：  
+    - 公共函数：无下划线前缀，用于对外提供服务（如后端 `services/asset_service.py` 中的 `create_asset()`、`get_asset_list()`；前端 `@/composables/useAsset.js` 中的 `fetchAssetList()`、`deleteAsset()`）。  
+    - 私有函数：以下划线 `_` 开头，仅在模块内部使用（如后端 `asset_service.py` 中的 `_validate_asset_code()`（校验资产编码唯一性）、`_log_asset_operation()`（记录资产操作日志）；前端 `useAsset.js` 中的 `_formatAssetData()`（格式化资产数据））。
+  - **统一管理与复用**：公共函数必须存放在统一目录（后端 `backend/utils/`、前端 `@/utils/`），通过 `__init__.py`（后端）或 `index.ts`（前端）导出，确保全局复用（如 `from utils import format_date` 或 `import { formatDate } from '@/utils'`）。
+- **业务一致性保障**：  
+  - 拆分后的函数必须遵循“单一职责原则”（一个函数只做一件事），如 `create_asset()` 仅处理资产创建逻辑，不包含表单验证（表单验证由 `_validate_asset_form()` 处理）。
+  - 公共函数的变更必须经过团队评审，避免影响依赖该函数的其他模块（如修改 `get_asset_list()` 的参数结构，必须同步更新所有调用该函数的地方）。
+
+## 9. 文档生成标准
+- **开发文档生成节点**： 在每个功能模块的开发完成后，在通过测试验证后生成对应的文档并放到docs目录下，文档生成后，必须进行审核，审核通过后，才能进行下一步开发。
+- **修复文档生成节点**：在修复bug后，必须生成对应的文档并放到docs/fix目录下，文档生成后，必须进行审核，审核通过后，才能进行下一步开发。
+本规范结合了**行业最佳实践**（如 Python PEP8、Vue3 风格指南）、**现有项目经验**（如 EAMS 前后端架构）和**搜索结果支撑**（如文件拆分、公共/私有函数区分），确保新增条款的合理性和可执行性。所有团队成员必须严格遵守，以保证代码质量、可维护性和业务一致性。

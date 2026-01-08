@@ -1,0 +1,38 @@
+{
+  "name": "asset-management-frontend",
+  "version": "1.0.0",
+  "description": "钩子资产管理系统 - Vue 3 前端",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix"
+  },
+  "dependencies": {
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.0",
+    "element-plus": "^2.4.4",
+    "@element-plus/icons-vue": "^2.3.1",
+    "echarts": "^5.4.3",
+    "vue-echarts": "^6.6.0",
+    "dayjs": "^1.11.10",
+    "@vueuse/core": "^10.7.0",
+    "xlsx": "^0.18.5",
+    "file-saver": "^2.0.5",
+    "qrcode": "^1.5.3",
+    "print-js": "^1.6.0",
+    "nprogress": "^0.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.2",
+    "vite": "^5.0.10",
+    "sass": "^1.69.5",
+    "unplugin-vue-components": "^0.26.0",
+    "unplugin-auto-import": "^0.17.2",
+    "eslint": "^8.56.0",
+    "eslint-plugin-vue": "^9.19.2"
+  }
+}
