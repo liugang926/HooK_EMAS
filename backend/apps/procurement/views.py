@@ -16,8 +16,8 @@ class SupplierViewSet(viewsets.ModelViewSet):
     serializer_class = SupplierSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['company', 'status']
-    search_fields = ['name', 'code', 'contact_name']
+    filterset_fields = ['company', 'is_active']
+    search_fields = ['name', 'code', 'contact']
 
 
 class PurchaseRequestViewSet(viewsets.ModelViewSet):

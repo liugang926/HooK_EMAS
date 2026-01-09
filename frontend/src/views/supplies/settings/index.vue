@@ -1,137 +1,165 @@
 <template>
-  <div class="supplies-settings-container">
-    <el-card class="settings-card">
+  <div class="supply-settings-container">
+    <el-card class="page-card">
       <template #header>
         <h2>用品设置</h2>
       </template>
       
-      <el-tabs v-model="activeTab" class="settings-tabs">
+      <el-tabs v-model="activeTab" tab-position="left">
         <!-- 用品分类 -->
-        <el-tab-pane label="用品分类" name="categories">
-          <div class="tab-header">
-            <el-button type="primary" @click="handleAddCategory">
-              <el-icon><Plus /></el-icon>
-              新增分类
-            </el-button>
+        <el-tab-pane label="用品分类" name="category">
+          <div class="setting-section">
+            <div class="section-header">
+              <h3>用品分类管理</h3>
+              <el-button type="primary" size="small" @click="handleAddCategory">
+                <el-icon><Plus /></el-icon>
+                添加分类
+              </el-button>
+            </div>
+            <el-tree
+              v-loading="categoryLoading"
+              :data="categoryTree"
+              :props="{ label: 'name', children: 'children' }"
+              default-expand-all
+              node-key="id"
+              draggable
+              :allow-drop="allowCategoryDrop"
+              @node-drop="handleCategoryDrop"
+            >
+              <template #default="{ node, data }">
+                <span class="tree-node">
+                  <span class="node-label">
+                    <el-icon class="drag-handle"><Rank /></el-icon>
+                    {{ node.label }}
+                  </span>
+                  <span class="tree-actions">
+                    <el-button type="primary" link size="small" @click.stop="handleAddSubCategory(data)">添加子分类</el-button>
+                    <el-button type="primary" link size="small" @click.stop="handleEditCategory(data)">编辑</el-button>
+                    <el-button type="danger" link size="small" @click.stop="handleDeleteCategory(data)">删除</el-button>
+                  </span>
+                </span>
+              </template>
+            </el-tree>
+            <div class="drag-tip">
+              <el-icon><InfoFilled /></el-icon>
+              <span>提示：可拖拽分类调整层级和顺序</span>
+            </div>
           </div>
-          
-          <el-table :data="categoryList" row-key="id" default-expand-all v-loading="categoryLoading">
-            <el-table-column prop="name" label="分类名称" min-width="200" />
-            <el-table-column prop="code" label="分类代码" width="150" />
-            <el-table-column prop="description" label="描述" min-width="200" />
-            <el-table-column prop="sort_order" label="排序" width="80" />
-            <el-table-column prop="is_active" label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.is_active ? 'success' : 'info'">
-                  {{ row.is_active ? '启用' : '停用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="{ row }">
-                <el-button type="primary" link @click="handleEditCategory(row)">编辑</el-button>
-                <el-button type="primary" link @click="handleAddSubCategory(row)">添加子分类</el-button>
-                <el-button type="danger" link @click="handleDeleteCategory(row)">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+        </el-tab-pane>
+        
+        <!-- 仓库管理 -->
+        <el-tab-pane label="仓库管理" name="warehouse">
+          <div class="setting-section">
+            <div class="section-header">
+              <h3>仓库管理</h3>
+              <el-button type="primary" size="small" @click="handleAddWarehouse">
+                <el-icon><Plus /></el-icon>
+                添加仓库
+              </el-button>
+            </div>
+            <el-table :data="warehouseList" v-loading="warehouseLoading" style="width: 100%">
+              <el-table-column prop="name" label="仓库名称" min-width="150" />
+              <el-table-column prop="code" label="仓库编码" width="120" />
+              <el-table-column prop="address" label="地址" min-width="200" />
+              <el-table-column label="状态" width="80" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+                    {{ row.is_active ? '启用' : '禁用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="150" fixed="right">
+                <template #default="{ row }">
+                  <el-button type="primary" link size="small" @click="handleEditWarehouse(row)">编辑</el-button>
+                  <el-button type="danger" link size="small" @click="handleDeleteWarehouse(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-tab-pane>
         
         <!-- 编号规则 -->
-        <el-tab-pane label="编号规则" name="codeRule">
-          <div class="code-rule-section">
+        <el-tab-pane label="编号规则" name="code">
+          <div class="setting-section" v-loading="codeRuleLoading">
             <h3>用品编号规则</h3>
-            <el-form :model="codeRuleForm" label-width="100px" class="code-rule-form">
+            <el-form label-width="120px" style="max-width: 500px">
               <el-form-item label="编号前缀">
-                <el-input v-model="codeRuleForm.prefix" placeholder="如: BG" style="width: 300px" />
+                <el-input v-model="codeRule.prefix" placeholder="如：BG" />
               </el-form-item>
               <el-form-item label="日期格式">
-                <el-select v-model="codeRuleForm.date_format" style="width: 300px">
+                <el-select v-model="codeRule.dateFormat" style="width: 100%">
                   <el-option label="年 (YYYY)" value="YYYY" />
                   <el-option label="年月 (YYYYMM)" value="YYYYMM" />
                   <el-option label="年月日 (YYYYMMDD)" value="YYYYMMDD" />
-                  <el-option label="无日期" value="" />
                 </el-select>
               </el-form-item>
               <el-form-item label="流水号位数">
-                <el-input-number v-model="codeRuleForm.serial_length" :min="3" :max="8" />
-              </el-form-item>
-              <el-form-item label="分隔符">
-                <el-input v-model="codeRuleForm.separator" placeholder="如: -" style="width: 100px" />
+                <el-input-number v-model="codeRule.serialLength" :min="3" :max="8" />
               </el-form-item>
               <el-form-item label="流水号重置">
-                <el-select v-model="codeRuleForm.reset_cycle" style="width: 300px">
+                <el-select v-model="codeRule.resetCycle" style="width: 100%">
                   <el-option label="每天重置" value="daily" />
                   <el-option label="每月重置" value="monthly" />
                   <el-option label="每年重置" value="yearly" />
-                  <el-option label="不重置" value="never" />
+                  <el-option label="永不重置" value="never" />
                 </el-select>
                 <div class="form-tip">流水号在指定周期后从1开始重新计数</div>
               </el-form-item>
               <el-form-item label="示例">
-                <el-tag type="warning" size="large">{{ codeRuleExample }}</el-tag>
+                <el-tag size="large" type="warning">{{ codeExample }}</el-tag>
               </el-form-item>
               <el-form-item>
-                <el-button type="primary" @click="saveCodeRule" :loading="savingCodeRule">保存设置</el-button>
+                <el-button type="primary" :loading="codeRuleLoading" @click="handleSaveCodeRule">保存设置</el-button>
               </el-form-item>
             </el-form>
           </div>
         </el-tab-pane>
         
         <!-- 自定义字段 -->
-        <el-tab-pane label="自定义字段" name="customFields">
-          <div class="custom-fields-section">
-            <el-alert 
-              title="自定义字段功能" 
-              description="您可以为用品档案添加自定义字段，以满足不同业务场景的需求。" 
-              type="info" 
-              show-icon 
-              :closable="false"
-              style="margin-bottom: 20px"
-            />
-            
-            <div class="tab-header">
+        <el-tab-pane label="自定义字段" name="fields">
+          <div class="setting-section">
+            <div class="section-header">
+              <h3>自定义字段</h3>
               <el-button type="primary" @click="handleAddField">
                 <el-icon><Plus /></el-icon>
-                新增字段
+                添加字段
               </el-button>
             </div>
             
-            <el-table :data="customFieldsList" v-loading="fieldsLoading" :row-class-name="getFieldRowClass">
-              <el-table-column prop="field_name" label="字段名称" width="150">
-                <template #default="{ row }">
-                  {{ row.field_name }}
-                  <el-tag v-if="row.is_system" type="info" size="small" style="margin-left: 4px">系统</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="field_key" label="字段标识" width="150" />
+            <el-table :data="fieldList" v-loading="fieldLoading" style="width: 100%">
+              <el-table-column prop="field_name" label="字段名称" min-width="150" />
               <el-table-column prop="field_type" label="字段类型" width="120">
                 <template #default="{ row }">
-                  {{ fieldTypeMap[row.field_type] || row.field_type }}
+                  {{ getFieldTypeLabel(row.field_type) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="is_required" label="必填" width="80" align="center">
+              <el-table-column label="是否必填" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag :type="row.is_required ? 'danger' : 'info'" size="small">
-                    {{ row.is_required ? '是' : '否' }}
+                    {{ row.is_required ? '必填' : '选填' }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="sort_order" label="排序" width="80" align="center" />
-              <el-table-column prop="is_active" label="状态" width="80" align="center">
+              <el-table-column label="系统字段" width="100" align="center">
                 <template #default="{ row }">
-                  <el-switch v-model="row.is_active" @change="toggleFieldStatus(row)" :disabled="row.is_system" />
+                  <el-tag :type="row.is_system ? 'warning' : ''" size="small">
+                    {{ row.is_system ? '系统' : '自定义' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="列表显示" width="100" align="center">
+                <template #default="{ row }">
+                  <el-switch 
+                    v-model="row.show_in_list" 
+                    :disabled="row.is_system"
+                    @change="handleToggleListShow(row)"
+                  />
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="150" fixed="right">
                 <template #default="{ row }">
-                  <template v-if="row.is_system">
-                    <span class="text-gray-400">系统字段</span>
-                  </template>
-                  <template v-else>
-                    <el-button type="primary" link @click="handleEditField(row)">编辑</el-button>
-                    <el-button type="danger" link @click="handleDeleteField(row)">删除</el-button>
-                  </template>
+                  <el-button type="primary" link size="small" @click="handleEditField(row)" :disabled="row.is_system">编辑</el-button>
+                  <el-button type="danger" link size="small" @click="handleDeleteField(row)" :disabled="row.is_system">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -140,182 +168,290 @@
       </el-tabs>
     </el-card>
     
-    <!-- 分类编辑弹窗 -->
+    <!-- 分类弹窗 -->
     <el-dialog v-model="categoryDialogVisible" :title="categoryDialogTitle" width="500px">
-      <el-form :model="categoryForm" label-width="100px" ref="categoryFormRef" :rules="categoryRules">
-        <el-form-item label="分类名称" prop="name">
+      <el-form :model="categoryForm" label-width="100px">
+        <el-form-item label="分类名称">
           <el-input v-model="categoryForm.name" placeholder="请输入分类名称" />
         </el-form-item>
-        <el-form-item label="分类代码" prop="code">
-          <el-input v-model="categoryForm.code" placeholder="请输入分类代码" />
+        <el-form-item label="上级分类" v-if="categoryForm.parentId">
+          <el-input :value="categoryForm.parentName" disabled />
         </el-form-item>
-        <el-form-item label="上级分类" v-if="!categoryForm.parent_id">
-          <el-cascader
-            v-model="categoryForm.parentPath"
-            :options="categoryList"
-            :props="{ value: 'id', label: 'name', checkStrictly: true, emitPath: false }"
-            placeholder="请选择上级分类（可选）"
-            clearable
-            style="width: 100%"
-          />
+        <el-form-item label="分类编码">
+          <el-input v-model="categoryForm.code" placeholder="请输入分类编码（可选）" />
         </el-form-item>
         <el-form-item label="排序">
-          <el-input-number v-model="categoryForm.sort_order" :min="0" />
-        </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="categoryForm.description" type="textarea" :rows="2" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="categoryForm.is_active" active-text="启用" inactive-text="停用" />
+          <el-input-number v-model="categoryForm.sort" :min="0" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="categoryDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCategory" :loading="savingCategory">保存</el-button>
+        <el-button type="primary" @click="submitCategory">确定</el-button>
+      </template>
+    </el-dialog>
+    
+    <!-- 仓库弹窗 -->
+    <el-dialog v-model="warehouseDialogVisible" :title="warehouseDialogTitle" width="500px">
+      <el-form :model="warehouseForm" label-width="100px">
+        <el-form-item label="仓库名称">
+          <el-input v-model="warehouseForm.name" placeholder="请输入仓库名称" />
+        </el-form-item>
+        <el-form-item label="仓库编码">
+          <el-input v-model="warehouseForm.code" placeholder="请输入仓库编码" />
+        </el-form-item>
+        <el-form-item label="地址">
+          <el-input v-model="warehouseForm.address" type="textarea" :rows="2" placeholder="请输入仓库地址" />
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="warehouseForm.is_active" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="warehouseDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitWarehouse">确定</el-button>
       </template>
     </el-dialog>
     
     <!-- 自定义字段弹窗 -->
-    <el-dialog v-model="fieldDialogVisible" :title="fieldDialogTitle" width="550px">
-      <el-form :model="fieldForm" label-width="100px" ref="fieldFormRef" :rules="fieldRules">
-        <el-form-item label="字段名称" prop="field_name">
-          <el-input v-model="fieldForm.field_name" placeholder="如: 供应商" />
-        </el-form-item>
+    <el-dialog v-model="fieldDialogVisible" :title="fieldDialogTitle" width="600px">
+      <el-form :model="fieldForm" :rules="fieldRules" ref="fieldFormRef" label-width="120px">
         <el-form-item label="字段标识" prop="field_key">
-          <el-input v-model="fieldForm.field_key" placeholder="如: supplier_name" :disabled="!!fieldForm.id" />
-          <div class="form-tip">英文标识，创建后不可修改</div>
+          <el-input 
+            v-model="fieldForm.field_key" 
+            placeholder="如：custom_field_1"
+            :disabled="!!fieldForm.id"
+          />
+          <div class="form-tip">字段标识创建后不可修改，建议使用英文和下划线</div>
+        </el-form-item>
+        <el-form-item label="字段名称" prop="field_name">
+          <el-input v-model="fieldForm.field_name" placeholder="请输入字段显示名称" />
         </el-form-item>
         <el-form-item label="字段类型" prop="field_type">
-          <el-select v-model="fieldForm.field_type" style="width: 100%">
-            <el-option label="单行文本" value="text" />
-            <el-option label="多行文本" value="textarea" />
-            <el-option label="数字" value="number" />
-            <el-option label="日期" value="date" />
-            <el-option label="单选" value="select" />
-            <el-option label="多选" value="multiselect" />
-            <el-option label="开关" value="switch" />
+          <el-select v-model="fieldForm.field_type" style="width: 100%" @change="handleFieldTypeChange">
+            <el-option-group label="基础类型">
+              <el-option label="单行文本" value="text" />
+              <el-option label="多行文本" value="textarea" />
+              <el-option label="数字" value="number" />
+              <el-option label="小数" value="decimal" />
+              <el-option label="日期" value="date" />
+              <el-option label="日期时间" value="datetime" />
+              <el-option label="开关" value="switch" />
+            </el-option-group>
+            <el-option-group label="选择类型">
+              <el-option label="下拉选择" value="select" />
+              <el-option label="多选" value="multi_select" />
+              <el-option label="单选框" value="radio" />
+            </el-option-group>
+            <el-option-group label="引用类型">
+              <el-option label="用户选择" value="reference" />
+              <el-option label="部门选择" value="tree_select" />
+            </el-option-group>
+            <el-option-group label="其他类型">
+              <el-option label="图片上传" value="image" />
+              <el-option label="文件上传" value="file" />
+            </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item label="选项" v-if="['select', 'multiselect'].includes(fieldForm.field_type)">
-          <el-input v-model="fieldForm.options_text" type="textarea" :rows="3" placeholder="每行一个选项" />
+        
+        <!-- 下拉选项配置 -->
+        <el-form-item v-if="['select', 'multi_select', 'radio'].includes(fieldForm.field_type)" label="选项配置">
+          <div class="options-editor">
+            <div v-for="(opt, idx) in fieldForm.options" :key="idx" class="option-item">
+              <el-input v-model="opt.label" placeholder="显示名称" style="width: 45%" />
+              <el-input v-model="opt.value" placeholder="选项值" style="width: 45%" />
+              <el-button type="danger" link @click="removeOption(idx)">
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </div>
+            <el-button type="primary" link @click="addOption">
+              <el-icon><Plus /></el-icon> 添加选项
+            </el-button>
+          </div>
         </el-form-item>
+        
+        <!-- 数字配置 -->
+        <el-form-item v-if="['number', 'decimal'].includes(fieldForm.field_type)" label="数值范围">
+          <el-row :gutter="10">
+            <el-col :span="12">
+              <el-input-number v-model="fieldForm.number_config.min" placeholder="最小值" style="width: 100%" />
+            </el-col>
+            <el-col :span="12">
+              <el-input-number v-model="fieldForm.number_config.max" placeholder="最大值" style="width: 100%" />
+            </el-col>
+          </el-row>
+        </el-form-item>
+        <el-form-item v-if="fieldForm.field_type === 'decimal'" label="小数位数">
+          <el-input-number v-model="fieldForm.number_config.precision" :min="0" :max="6" />
+        </el-form-item>
+        
+        <el-divider content-position="left">权限设置</el-divider>
+        
         <el-form-item label="是否必填">
           <el-switch v-model="fieldForm.is_required" />
         </el-form-item>
+        <el-form-item label="始终只读">
+          <el-switch v-model="fieldForm.is_readonly" />
+        </el-form-item>
+        <el-form-item label="新增时隐藏">
+          <el-switch v-model="fieldForm.is_hidden_on_create" />
+        </el-form-item>
+        <el-form-item label="编辑时隐藏">
+          <el-switch v-model="fieldForm.is_hidden_on_edit" />
+        </el-form-item>
+        
+        <el-divider content-position="left">显示设置</el-divider>
+        
         <el-form-item label="排序">
           <el-input-number v-model="fieldForm.sort_order" :min="0" />
+        </el-form-item>
+        <el-form-item label="栅格宽度">
+          <el-slider v-model="fieldForm.width" :min="4" :max="24" :step="4" show-stops />
+          <span class="form-tip">一行最多24格，8表示一行3列</span>
+        </el-form-item>
+        <el-form-item label="占位提示">
+          <el-input v-model="fieldForm.placeholder" placeholder="请输入占位提示文字" />
+        </el-form-item>
+        <el-form-item label="列表显示">
+          <el-switch v-model="fieldForm.show_in_list" />
+          <span class="form-tip">是否在用品列表中显示此字段</span>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="fieldDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitField" :loading="savingField">保存</el-button>
+        <el-button type="primary" :loading="fieldSubmitting" @click="submitField">确定</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { Plus, Delete, Rank, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  getSupplyCategories, createSupplyCategory, updateSupplyCategory, deleteSupplyCategory,
+  getWarehouses 
+} from '@/api/supplies'
 import request from '@/api/request'
-import { useAppStore } from '@/stores/app'
 
-const appStore = useAppStore()
-const activeTab = ref('categories')
+const activeTab = ref('category')
 
-// Category management
+// ============ 字段类型映射 ============
+const fieldTypeMap = {
+  text: '单行文本',
+  textarea: '多行文本',
+  number: '数字',
+  decimal: '小数',
+  date: '日期',
+  datetime: '日期时间',
+  select: '下拉选择',
+  multi_select: '多选',
+  radio: '单选框',
+  switch: '开关',
+  reference: '用户选择',
+  tree_select: '部门选择',
+  image: '图片上传',
+  file: '文件上传',
+}
+
+function getFieldTypeLabel(type) {
+  return fieldTypeMap[type] || type
+}
+
+// ============ 分类管理 ============
 const categoryLoading = ref(false)
-const savingCategory = ref(false)
-const categoryList = ref([])
+const categoryTree = ref([])
+
 const categoryDialogVisible = ref(false)
-const categoryDialogTitle = ref('新增分类')
-const categoryFormRef = ref(null)
+const categoryDialogTitle = ref('添加分类')
 const categoryForm = reactive({
   id: null,
   name: '',
   code: '',
-  parent_id: null,
-  parentPath: null,
-  sort_order: 0,
-  description: '',
-  is_active: true
+  sort: 0,
+  parentId: null,
+  parentName: ''
 })
-
-const categoryRules = {
-  name: [{ required: true, message: '请输入分类名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入分类代码', trigger: 'blur' }]
-}
 
 async function loadCategories() {
   categoryLoading.value = true
   try {
-    const res = await request.get('/consumables/categories/tree/', {
-      params: { company: appStore.currentCompany?.id }
-    })
-    categoryList.value = res || []
+    const res = await getSupplyCategories()
+    const data = res.results || res || []
+    categoryTree.value = buildTree(Array.isArray(data) ? data : [])
   } catch (error) {
-    // Mock data
-    categoryList.value = [
-      { id: 1, name: '纸张类', code: 'ZZ', sort_order: 1, is_active: true, children: [] },
-      { id: 2, name: '书写工具', code: 'SX', sort_order: 2, is_active: true, children: [] },
-      { id: 3, name: '文件管理', code: 'WJ', sort_order: 3, is_active: true, children: [] },
-      { id: 4, name: '办公设备耗材', code: 'SB', sort_order: 4, is_active: true, children: [] }
-    ]
+    console.error('加载分类失败:', error)
   } finally {
     categoryLoading.value = false
   }
 }
 
+function buildTree(data) {
+  const ids = new Set(data.map(item => item.id))
+  const isRoot = (item) => item.parent === null || !ids.has(item.parent)
+  
+  const buildSubTree = (parentId) => {
+    return data
+      .filter(item => item.parent === parentId)
+      .map(item => ({
+        ...item,
+        children: buildSubTree(item.id)
+      }))
+  }
+  
+  return data
+    .filter(isRoot)
+    .map(item => ({
+      ...item,
+      children: buildSubTree(item.id)
+    }))
+}
+
 function handleAddCategory() {
-  categoryDialogTitle.value = '新增分类'
-  Object.assign(categoryForm, {
-    id: null,
-    name: '',
-    code: '',
-    parent_id: null,
-    parentPath: null,
-    sort_order: 0,
-    description: '',
-    is_active: true
-  })
+  categoryDialogTitle.value = '添加分类'
+  Object.assign(categoryForm, { id: null, name: '', code: '', sort: 0, parentId: null, parentName: '' })
   categoryDialogVisible.value = true
 }
 
 function handleAddSubCategory(parent) {
-  categoryDialogTitle.value = '新增子分类'
-  Object.assign(categoryForm, {
-    id: null,
-    name: '',
-    code: '',
-    parent_id: parent.id,
-    parentPath: parent.id,
-    sort_order: 0,
-    description: '',
-    is_active: true
-  })
+  categoryDialogTitle.value = '添加子分类'
+  Object.assign(categoryForm, { id: null, name: '', code: '', sort: 0, parentId: parent.id, parentName: parent.name })
   categoryDialogVisible.value = true
 }
 
-function handleEditCategory(row) {
+function handleEditCategory(data) {
   categoryDialogTitle.value = '编辑分类'
-  Object.assign(categoryForm, {
-    id: row.id,
-    name: row.name,
-    code: row.code,
-    parent_id: row.parent,
-    parentPath: row.parent,
-    sort_order: row.sort_order || 0,
-    description: row.description || '',
-    is_active: row.is_active
+  const parentName = data.parent ? findCategoryName(categoryTree.value, data.parent) : ''
+  Object.assign(categoryForm, { 
+    id: data.id, 
+    name: data.name, 
+    code: data.code || '', 
+    sort: data.sort_order || 0, 
+    parentId: data.parent || null, 
+    parentName: parentName 
   })
   categoryDialogVisible.value = true
 }
 
-async function handleDeleteCategory(row) {
+function findCategoryName(tree, id) {
+  for (const node of tree) {
+    if (node.id === id) return node.name
+    if (node.children?.length) {
+      const found = findCategoryName(node.children, id)
+      if (found) return found
+    }
+  }
+  return ''
+}
+
+async function handleDeleteCategory(data) {
   try {
-    await ElMessageBox.confirm(`确定要删除分类 "${row.name}" 吗？`, '确认删除', { type: 'warning' })
-    await request.delete(`/consumables/categories/${row.id}/`)
+    await ElMessageBox.confirm(
+      `确定要删除分类 "${data.name}" 吗？${data.children?.length ? '（该分类下有子分类，将一并删除）' : ''}`,
+      '删除确认',
+      { confirmButtonText: '确定删除', cancelButtonText: '取消', type: 'warning' }
+    )
+    await deleteSupplyCategory(data.id)
     ElMessage.success('删除成功')
     loadCategories()
   } catch (error) {
@@ -326,203 +462,119 @@ async function handleDeleteCategory(row) {
 }
 
 async function submitCategory() {
-  if (!categoryFormRef.value) return
-  try {
-    await categoryFormRef.value.validate()
-  } catch { return }
+  if (!categoryForm.name.trim()) {
+    ElMessage.warning('请输入分类名称')
+    return
+  }
   
-  savingCategory.value = true
   try {
     const data = {
-      company: appStore.currentCompany?.id,
       name: categoryForm.name,
       code: categoryForm.code,
-      parent: categoryForm.parentPath || categoryForm.parent_id || null,
-      sort_order: categoryForm.sort_order,
-      description: categoryForm.description,
-      is_active: categoryForm.is_active
+      sort_order: categoryForm.sort,
+      parent: categoryForm.parentId
     }
     
     if (categoryForm.id) {
-      await request.put(`/consumables/categories/${categoryForm.id}/`, data)
+      await updateSupplyCategory(categoryForm.id, data)
       ElMessage.success('编辑成功')
     } else {
-      await request.post('/consumables/categories/', data)
-      ElMessage.success('新增成功')
+      await createSupplyCategory(data)
+      ElMessage.success('添加成功')
     }
     categoryDialogVisible.value = false
     loadCategories()
   } catch (error) {
-    ElMessage.error('保存失败')
-  } finally {
-    savingCategory.value = false
+    ElMessage.error('操作失败')
   }
 }
 
-// Code rule management
-const savingCodeRule = ref(false)
-const codeRuleForm = reactive({
-  prefix: 'BG',
-  date_format: 'YYYYMMDD',
-  serial_length: 4,
-  separator: '',
-  reset_cycle: 'daily'
-})
+function allowCategoryDrop() {
+  return true
+}
 
-const codeRuleExample = computed(() => {
-  const now = new Date()
-  let dateStr = ''
-  if (codeRuleForm.date_format === 'YYYY') {
-    dateStr = String(now.getFullYear())
-  } else if (codeRuleForm.date_format === 'YYYYMM') {
-    dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`
-  } else if (codeRuleForm.date_format === 'YYYYMMDD') {
-    dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
-  }
-  
-  const serial = '1'.padStart(codeRuleForm.serial_length, '0')
-  const sep = codeRuleForm.separator || ''
-  
-  return `${codeRuleForm.prefix || ''}${sep}${dateStr}${sep}${serial}`
-})
-
-async function loadCodeRule() {
+async function handleCategoryDrop(draggingNode, dropNode, dropType) {
   try {
-    const res = await request.get('/system/code-rules/asset_code/', {
-      params: { company: appStore.currentCompany?.id, code: 'supply_code' }
-    })
-    if (res && res.prefix) {
-      Object.assign(codeRuleForm, {
-        prefix: res.prefix || 'BG',
-        date_format: res.date_format || 'YYYYMMDD',
-        serial_length: res.serial_length || 4,
-        separator: res.separator || '',
-        reset_cycle: res.reset_cycle || 'daily'
-      })
+    const draggedData = draggingNode.data
+    let newParentId = null
+    let newSortOrder = 0
+    
+    if (dropType === 'inner') {
+      newParentId = dropNode.data.id
+      newSortOrder = dropNode.data.children?.length || 0
+    } else if (dropType === 'before') {
+      newParentId = dropNode.data.parent || null
+      newSortOrder = dropNode.data.sort_order > 0 ? dropNode.data.sort_order - 1 : 0
+    } else if (dropType === 'after') {
+      newParentId = dropNode.data.parent || null
+      newSortOrder = (dropNode.data.sort_order || 0) + 1
     }
-  } catch (error) {
-    // Use defaults
-  }
-}
-
-async function saveCodeRule() {
-  savingCodeRule.value = true
-  try {
-    await request.post('/system/code-rules/asset_code/', {
-      company: appStore.currentCompany?.id,
-      code: 'supply_code',
-      prefix: codeRuleForm.prefix,
-      date_format: codeRuleForm.date_format,
-      serial_length: codeRuleForm.serial_length,
-      separator: codeRuleForm.separator,
-      reset_cycle: codeRuleForm.reset_cycle
+    
+    await updateSupplyCategory(draggedData.id, {
+      name: draggedData.name,
+      code: draggedData.code,
+      sort_order: newSortOrder,
+      parent: newParentId
     })
-    ElMessage.success('编号规则保存成功')
+    
+    ElMessage.success('分类移动成功')
+    loadCategories()
   } catch (error) {
-    ElMessage.error('保存失败')
-  } finally {
-    savingCodeRule.value = false
+    ElMessage.error('移动失败')
+    loadCategories()
   }
 }
 
-// Custom fields management
-const fieldsLoading = ref(false)
-const savingField = ref(false)
-const customFieldsList = ref([])
-const fieldDialogVisible = ref(false)
-const fieldDialogTitle = ref('新增字段')
-const fieldFormRef = ref(null)
-const fieldForm = reactive({
+// ============ 仓库管理 ============
+const warehouseLoading = ref(false)
+const warehouseList = ref([])
+
+const warehouseDialogVisible = ref(false)
+const warehouseDialogTitle = ref('添加仓库')
+const warehouseForm = reactive({
   id: null,
-  field_name: '',
-  field_key: '',
-  field_type: 'text',
-  options_text: '',
-  is_required: false,
-  sort_order: 0
+  name: '',
+  code: '',
+  address: '',
+  is_active: true
 })
 
-const fieldRules = {
-  field_name: [{ required: true, message: '请输入字段名称', trigger: 'blur' }],
-  field_key: [{ required: true, message: '请输入字段标识', trigger: 'blur' }],
-  field_type: [{ required: true, message: '请选择字段类型', trigger: 'change' }]
-}
-
-const fieldTypeMap = {
-  text: '单行文本',
-  textarea: '多行文本',
-  number: '数字',
-  date: '日期',
-  select: '单选',
-  multiselect: '多选',
-  switch: '开关'
-}
-
-// Default system fields for office supplies
-const defaultFields = [
-  { id: 'sys_1', field_name: '用品名称', field_key: 'name', field_type: 'text', is_required: true, is_system: true, is_active: true, sort_order: 1 },
-  { id: 'sys_2', field_name: '用品编码', field_key: 'code', field_type: 'text', is_required: false, is_system: true, is_active: true, sort_order: 2 },
-  { id: 'sys_3', field_name: '用品分类', field_key: 'category', field_type: 'select', is_required: false, is_system: true, is_active: true, sort_order: 3 },
-  { id: 'sys_4', field_name: '品牌', field_key: 'brand', field_type: 'text', is_required: false, is_system: true, is_active: true, sort_order: 4 },
-  { id: 'sys_5', field_name: '规格型号', field_key: 'model', field_type: 'text', is_required: false, is_system: true, is_active: true, sort_order: 5 },
-  { id: 'sys_6', field_name: '计量单位', field_key: 'unit', field_type: 'select', is_required: true, is_system: true, is_active: true, sort_order: 6 },
-  { id: 'sys_7', field_name: '单价', field_key: 'price', field_type: 'number', is_required: false, is_system: true, is_active: true, sort_order: 7 },
-  { id: 'sys_8', field_name: '安全库存', field_key: 'min_stock', field_type: 'number', is_required: false, is_system: true, is_active: true, sort_order: 8 },
-  { id: 'sys_9', field_name: '最高库存', field_key: 'max_stock', field_type: 'number', is_required: false, is_system: true, is_active: true, sort_order: 9 },
-  { id: 'sys_10', field_name: '描述', field_key: 'description', field_type: 'textarea', is_required: false, is_system: true, is_active: true, sort_order: 10 }
-]
-
-async function loadCustomFields() {
-  fieldsLoading.value = true
+async function loadWarehouses() {
+  warehouseLoading.value = true
   try {
-    const res = await request.get('/system/form/fields/', {
-      params: { module: 'supply', company: appStore.currentCompany?.id }
-    })
-    const apiFields = res.results || res || []
-    // Combine default system fields with custom fields from API
-    customFieldsList.value = [...defaultFields, ...apiFields.filter(f => !f.is_system)]
+    const res = await getWarehouses()
+    warehouseList.value = res.results || res || []
   } catch (error) {
-    // If API fails, show default fields
-    customFieldsList.value = [...defaultFields]
+    console.error('加载仓库失败:', error)
   } finally {
-    fieldsLoading.value = false
+    warehouseLoading.value = false
   }
 }
 
-function handleAddField() {
-  fieldDialogTitle.value = '新增字段'
-  Object.assign(fieldForm, {
-    id: null,
-    field_name: '',
-    field_key: '',
-    field_type: 'text',
-    options_text: '',
-    is_required: false,
-    sort_order: customFieldsList.value.length + 1
-  })
-  fieldDialogVisible.value = true
+function handleAddWarehouse() {
+  warehouseDialogTitle.value = '添加仓库'
+  Object.assign(warehouseForm, { id: null, name: '', code: '', address: '', is_active: true })
+  warehouseDialogVisible.value = true
 }
 
-function handleEditField(row) {
-  fieldDialogTitle.value = '编辑字段'
-  Object.assign(fieldForm, {
-    id: row.id,
-    field_name: row.field_name,
-    field_key: row.field_key,
-    field_type: row.field_type,
-    options_text: row.options ? row.options.join('\n') : '',
-    is_required: row.is_required,
-    sort_order: row.sort_order
+function handleEditWarehouse(data) {
+  warehouseDialogTitle.value = '编辑仓库'
+  Object.assign(warehouseForm, { 
+    id: data.id, 
+    name: data.name, 
+    code: data.code || '', 
+    address: data.address || '',
+    is_active: data.is_active !== false
   })
-  fieldDialogVisible.value = true
+  warehouseDialogVisible.value = true
 }
 
-async function handleDeleteField(row) {
+async function handleDeleteWarehouse(data) {
   try {
-    await ElMessageBox.confirm(`确定要删除字段 "${row.field_name}" 吗？`, '确认删除', { type: 'warning' })
-    await request.delete(`/system/form/fields/${row.id}/`)
+    await ElMessageBox.confirm(`确定要删除仓库 "${data.name}" 吗？`, '删除确认', { type: 'warning' })
+    await request.delete(`/organizations/locations/${data.id}/`)
     ElMessage.success('删除成功')
-    loadCustomFields()
+    loadWarehouses()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('删除失败')
@@ -530,38 +582,257 @@ async function handleDeleteField(row) {
   }
 }
 
-async function toggleFieldStatus(row) {
-  if (row.is_system) return // Don't allow toggling system fields
+async function submitWarehouse() {
+  if (!warehouseForm.name.trim()) {
+    ElMessage.warning('请输入仓库名称')
+    return
+  }
+  
   try {
-    await request.patch(`/system/form/fields/${row.id}/`, { is_active: row.is_active })
-    ElMessage.success('状态更新成功')
+    const data = {
+      name: warehouseForm.name,
+      code: warehouseForm.code,
+      address: warehouseForm.address,
+      type: 'warehouse',
+      is_active: warehouseForm.is_active
+    }
+    
+    if (warehouseForm.id) {
+      await request.put(`/organizations/locations/${warehouseForm.id}/`, data)
+      ElMessage.success('编辑成功')
+    } else {
+      await request.post('/organizations/locations/', data)
+      ElMessage.success('添加成功')
+    }
+    warehouseDialogVisible.value = false
+    loadWarehouses()
   } catch (error) {
-    row.is_active = !row.is_active
+    ElMessage.error('操作失败')
+  }
+}
+
+// ============ 编号规则 ============
+const codeRuleLoading = ref(false)
+const codeRule = reactive({
+  prefix: 'BG',
+  dateFormat: 'YYYYMMDD',
+  serialLength: 4,
+  separator: '',
+  resetCycle: 'daily'
+})
+
+const codeExample = computed(() => {
+  const date = new Date()
+  let dateStr = ''
+  if (codeRule.dateFormat === 'YYYY') dateStr = date.getFullYear()
+  else if (codeRule.dateFormat === 'YYYYMM') dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`
+  else dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`
+  const serial = '1'.padStart(codeRule.serialLength, '0')
+  const sep = codeRule.separator || ''
+  return `${codeRule.prefix}${sep}${dateStr}${sep}${serial}`
+})
+
+async function loadCodeRule() {
+  codeRuleLoading.value = true
+  try {
+    const res = await request.get('/system/code-rules/supply_code/')
+    if (res) {
+      codeRule.prefix = res.prefix || 'BG'
+      codeRule.dateFormat = res.date_format || 'YYYYMMDD'
+      codeRule.serialLength = res.serial_length || 4
+      codeRule.separator = res.separator || ''
+      codeRule.resetCycle = res.reset_cycle || 'daily'
+    }
+  } catch (error) {
+    console.log('No code rule found, using defaults')
+  } finally {
+    codeRuleLoading.value = false
+  }
+}
+
+async function handleSaveCodeRule() {
+  codeRuleLoading.value = true
+  try {
+    await request.post('/system/code-rules/supply_code/', {
+      prefix: codeRule.prefix,
+      date_format: codeRule.dateFormat,
+      serial_length: codeRule.serialLength,
+      separator: codeRule.separator,
+      reset_cycle: codeRule.resetCycle
+    })
+    ElMessage.success('编号规则保存成功')
+  } catch (error) {
+    ElMessage.error('保存失败: ' + (error.response?.data?.error || error.message))
+  } finally {
+    codeRuleLoading.value = false
+  }
+}
+
+// ============ 自定义字段 ============
+const MODULE_NAME = 'supply'
+
+const fieldLoading = ref(false)
+const fieldList = ref([])
+
+const fieldDialogVisible = ref(false)
+const fieldDialogTitle = ref('添加字段')
+const fieldSubmitting = ref(false)
+const fieldFormRef = ref(null)
+
+// Default system fields for supplies
+const defaultSystemFields = [
+  { id: 'sys_1', field_name: '用品名称', field_key: 'name', field_type: 'text', is_required: true, is_system: true, show_in_list: true, sort_order: 1 },
+  { id: 'sys_2', field_name: '用品编号', field_key: 'code', field_type: 'text', is_required: true, is_system: true, show_in_list: true, sort_order: 2 },
+  { id: 'sys_3', field_name: '用品分类', field_key: 'category', field_type: 'tree_select', is_required: true, is_system: true, show_in_list: true, sort_order: 3 },
+  { id: 'sys_4', field_name: '规格型号', field_key: 'model', field_type: 'text', is_required: false, is_system: true, show_in_list: true, sort_order: 4 },
+  { id: 'sys_5', field_name: '单位', field_key: 'unit', field_type: 'text', is_required: true, is_system: true, show_in_list: true, sort_order: 5 },
+  { id: 'sys_6', field_name: '单价', field_key: 'price', field_type: 'decimal', is_required: false, is_system: true, show_in_list: true, sort_order: 6 },
+  { id: 'sys_7', field_name: '库存预警', field_key: 'min_stock', field_type: 'number', is_required: false, is_system: true, show_in_list: false, sort_order: 7 },
+  { id: 'sys_8', field_name: '描述', field_key: 'description', field_type: 'textarea', is_required: false, is_system: true, show_in_list: false, sort_order: 8 },
+]
+
+const defaultFieldForm = {
+  id: null,
+  module: MODULE_NAME,
+  field_key: '',
+  field_name: '',
+  field_type: 'text',
+  sort_order: 0,
+  is_required: false,
+  is_readonly: false,
+  is_hidden_on_create: false,
+  is_hidden_on_edit: false,
+  options: [],
+  number_config: { min: 0, max: 999999, precision: 2 },
+  placeholder: '',
+  width: 8,
+  show_in_list: false,
+  is_system: false,
+}
+
+const fieldForm = reactive({ ...defaultFieldForm })
+
+const fieldRules = {
+  field_key: [
+    { required: true, message: '请输入字段标识', trigger: 'blur' },
+    { pattern: /^[a-zA-Z_][a-zA-Z0-9_]*$/, message: '只能包含字母、数字和下划线', trigger: 'blur' }
+  ],
+  field_name: [{ required: true, message: '请输入字段名称', trigger: 'blur' }],
+  field_type: [{ required: true, message: '请选择字段类型', trigger: 'change' }],
+}
+
+async function loadFields() {
+  fieldLoading.value = true
+  try {
+    const res = await request.get('/system/form/fields/', {
+      params: { module: MODULE_NAME }
+    })
+    const apiFields = res.results || res || []
+    // Combine system fields with custom fields from API
+    fieldList.value = [...defaultSystemFields, ...apiFields.filter(f => !f.is_system)]
+  } catch (error) {
+    console.error('加载字段列表失败:', error)
+    fieldList.value = [...defaultSystemFields]
+  } finally {
+    fieldLoading.value = false
+  }
+}
+
+function handleAddField() {
+  fieldDialogTitle.value = '添加字段'
+  Object.assign(fieldForm, { 
+    ...defaultFieldForm,
+    options: [],
+    number_config: { min: 0, max: 999999, precision: 2 }
+  })
+  fieldDialogVisible.value = true
+}
+
+function handleEditField(row) {
+  if (row.is_system) {
+    ElMessage.warning('系统字段不能编辑')
+    return
+  }
+  fieldDialogTitle.value = '编辑字段'
+  Object.assign(fieldForm, {
+    ...defaultFieldForm,
+    ...row,
+    options: row.options || [],
+    number_config: row.number_config || { min: 0, max: 999999, precision: 2 }
+  })
+  fieldDialogVisible.value = true
+}
+
+async function handleDeleteField(row) {
+  if (row.is_system) {
+    ElMessage.warning('系统字段不能删除')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(`确定要删除字段 "${row.field_name}" 吗？`, '删除确认', { type: 'warning' })
+    await request.delete(`/system/form/fields/${row.id}/`)
+    ElMessage.success('删除成功')
+    loadFields()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+async function handleToggleListShow(row) {
+  if (row.is_system) return
+  try {
+    await request.patch(`/system/form/fields/${row.id}/`, { show_in_list: row.show_in_list })
+  } catch (error) {
+    row.show_in_list = !row.show_in_list
     ElMessage.error('更新失败')
   }
 }
 
-function getFieldRowClass({ row }) {
-  return row.is_system ? 'system-field-row' : ''
+function handleFieldTypeChange(type) {
+  if (['select', 'multi_select', 'radio'].includes(type)) {
+    if (!fieldForm.options.length) {
+      fieldForm.options = [{ label: '', value: '' }]
+    }
+  } else {
+    fieldForm.options = []
+  }
+}
+
+function addOption() {
+  fieldForm.options.push({ label: '', value: '' })
+}
+
+function removeOption(index) {
+  fieldForm.options.splice(index, 1)
 }
 
 async function submitField() {
-  if (!fieldFormRef.value) return
   try {
-    await fieldFormRef.value.validate()
-  } catch { return }
+    await fieldFormRef.value?.validate()
+  } catch (error) {
+    return
+  }
   
-  savingField.value = true
+  fieldSubmitting.value = true
   try {
     const data = {
-      module: 'supply',
-      field_name: fieldForm.field_name,
+      module: MODULE_NAME,
       field_key: fieldForm.field_key,
+      field_name: fieldForm.field_name,
       field_type: fieldForm.field_type,
-      options: fieldForm.options_text ? fieldForm.options_text.split('\n').filter(Boolean) : [],
-      is_required: fieldForm.is_required,
       sort_order: fieldForm.sort_order,
-      is_active: true
+      is_required: fieldForm.is_required,
+      is_readonly: fieldForm.is_readonly,
+      is_hidden_on_create: fieldForm.is_hidden_on_create,
+      is_hidden_on_edit: fieldForm.is_hidden_on_edit,
+      options: fieldForm.options.filter(o => o.label && o.value),
+      number_config: fieldForm.number_config,
+      placeholder: fieldForm.placeholder,
+      width: fieldForm.width,
+      show_in_list: fieldForm.show_in_list,
     }
     
     if (fieldForm.id) {
@@ -569,74 +840,122 @@ async function submitField() {
       ElMessage.success('编辑成功')
     } else {
       await request.post('/system/form/fields/', data)
-      ElMessage.success('新增成功')
+      ElMessage.success('添加成功')
     }
+    
     fieldDialogVisible.value = false
-    loadCustomFields()
+    loadFields()
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error('保存失败: ' + (error.response?.data?.detail || error.message))
   } finally {
-    savingField.value = false
+    fieldSubmitting.value = false
   }
 }
 
+// Tab 切换时加载数据
+watch(activeTab, (tab) => {
+  if (tab === 'category' && !categoryTree.value.length) {
+    loadCategories()
+  } else if (tab === 'warehouse' && !warehouseList.value.length) {
+    loadWarehouses()
+  } else if (tab === 'code') {
+    loadCodeRule()
+  } else if (tab === 'fields' && fieldList.value.length <= defaultSystemFields.length) {
+    loadFields()
+  }
+})
+
 onMounted(() => {
   loadCategories()
-  loadCodeRule()
-  loadCustomFields()
 })
 </script>
 
 <style lang="scss" scoped>
-.supplies-settings-container {
-  .settings-card {
-    border-radius: 16px;
-    
-    h2 {
-      margin: 0;
-      font-size: 18px;
-      color: #1f2937;
-    }
+.supply-settings-container {
+  .page-card { 
+    border-radius: 16px; 
+    min-height: calc(100vh - 200px);
+    h2 { margin: 0; font-size: 18px; color: #1f2937; } 
   }
   
-  .tab-header {
-    margin-bottom: 16px;
+  .setting-section {
+    .section-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 16px; 
+      h3 { margin: 0; font-size: 16px; color: #374151; } 
+    }
+    h3 { font-size: 16px; margin: 0 0 16px; color: #374151; }
   }
   
-  .code-rule-section {
-    max-width: 600px;
+  .tree-node { 
+    flex: 1; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding-right: 16px;
+    font-size: 14px;
     
-    h3 {
-      margin: 0 0 20px;
-      font-size: 16px;
-      color: #374151;
+    .node-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      .drag-handle {
+        color: #c0c4cc;
+        cursor: grab;
+        font-size: 14px;
+        
+        &:hover { color: #409eff; }
+        &:active { cursor: grabbing; }
+      }
     }
+    
+    .tree-actions {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    &:hover .tree-actions { opacity: 1; }
+  }
+  
+  .drag-tip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #f4f4f5;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #909399;
+  }
+  
+  :deep(.el-tabs--left) {
+    .el-tabs__item { height: 48px; line-height: 48px; }
+  }
+  
+  :deep(.el-tree-node__content) {
+    height: 40px;
+    &:hover { background-color: #f3f4f6; }
   }
   
   .form-tip {
     font-size: 12px;
     color: #909399;
-    margin-top: 4px;
+    margin-left: 8px;
   }
   
-  .custom-fields-section {
-    .tab-header {
-      margin-bottom: 16px;
+  .options-editor {
+    width: 100%;
+    
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
     }
-  }
-  
-  .text-gray-400 {
-    color: #9ca3af;
-    font-size: 12px;
-  }
-}
-
-// Global style for system field row (needs to be unscoped for table row styling)
-:deep(.system-field-row) {
-  background-color: #f9fafb !important;
-  
-  td {
-    color: #6b7280;
   }
 }
 </style>
