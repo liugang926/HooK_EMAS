@@ -81,8 +81,11 @@ class CodeRule(models.Model):
     company = models.ForeignKey(
         'organizations.Company',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='code_rules',
-        verbose_name='所属公司'
+        verbose_name='所属公司',
+        help_text='为空表示系统级规则'
     )
     name = models.CharField('规则名称', max_length=100)
     code = models.CharField('规则代码', max_length=50)

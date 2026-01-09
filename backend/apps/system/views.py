@@ -108,37 +108,176 @@ class CodeRuleViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def generate_code(self, request):
         """
-        Generate a new asset code based on the company's code rule.
-        Delegates to AssetService.generate_asset_code() following Service Layer pattern.
+        Generate a new code based on the company's code rule for any module.
         
         Request body:
-            company: Company ID
+            company: Company ID (optional for some modules)
+            code_type: Code rule type (e.g., 'asset_code', 'supply_code', 'purchase_order_code')
             
         Returns:
-            code: The generated asset code
+            code: The generated code
         """
         from apps.organizations.models import Company
-        from services.asset_service import AssetService
+        from .module_registry import get_module_code_rule_config
         
         company_id = request.data.get('company')
-        if not company_id:
-            return Response({'error': '请提供公司ID'}, status=400)
+        code_type = request.data.get('code_type', 'asset_code')
         
+        # Try to get existing rule from database
         try:
-            company = Company.objects.get(id=company_id)
-        except Company.DoesNotExist:
-            return Response({'error': '公司不存在'}, status=400)
+            if company_id:
+                rule = CodeRule.objects.get(company_id=company_id, code=code_type)
+            else:
+                rule = CodeRule.objects.filter(code=code_type).first()
+            
+            if rule:
+                # Generate code based on rule
+                now = timezone.now()
+                
+                # Check if we need to reset serial number
+                should_reset = False
+                if rule.reset_cycle == 'daily':
+                    should_reset = rule.last_reset_date != now.date()
+                elif rule.reset_cycle == 'monthly':
+                    should_reset = (
+                        not rule.last_reset_date or
+                        rule.last_reset_date.month != now.month or
+                        rule.last_reset_date.year != now.year
+                    )
+                elif rule.reset_cycle == 'yearly':
+                    should_reset = (
+                        not rule.last_reset_date or
+                        rule.last_reset_date.year != now.year
+                    )
+                
+                if should_reset:
+                    rule.current_serial = 0
+                    rule.last_reset_date = now.date()
+                
+                # Increment serial
+                rule.current_serial += 1
+                rule.save()
+                
+                # Build code
+                date_str = ''
+                if rule.date_format == 'YYYY':
+                    date_str = now.strftime('%Y')
+                elif rule.date_format == 'YYYYMM':
+                    date_str = now.strftime('%Y%m')
+                elif rule.date_format == 'YYYYMMDD':
+                    date_str = now.strftime('%Y%m%d')
+                
+                serial = str(rule.current_serial).zfill(rule.serial_length)
+                sep = rule.separator or ''
+                
+                code = f"{rule.prefix or ''}{sep}{date_str}{sep}{serial}"
+                
+                return Response({'code': code})
+                
+        except CodeRule.DoesNotExist:
+            pass
         
-        try:
-            # Delegate to service layer (following .cursorrules Service Layer pattern)
-            asset_code = AssetService.generate_asset_code(company)
+        # Fallback: generate code using default prefix from module registry
+        default_prefixes = {
+            'asset_code': 'ZC',
+            'supply_code': 'BG',
+            'purchase_order_code': 'PO',
+        }
+        prefix = default_prefixes.get(code_type, 'CODE')
+        now = timezone.now()
+        date_str = now.strftime('%Y%m%d')
+        serial = str(int(now.timestamp() * 1000) % 10000).zfill(4)
+        
+        return Response({'code': f"{prefix}{date_str}{serial}"})
+    
+    @action(detail=False, methods=['get', 'post'], url_path='by-code/(?P<code_type>[^/.]+)')
+    def by_code(self, request, code_type=None):
+        """
+        Get or update a code rule by its code type.
+        
+        Path params:
+            code_type: The code type (e.g., 'asset_code', 'supply_code')
+            
+        Query/Body params:
+            company: Company ID (optional)
+        """
+        company_id = request.query_params.get('company') or request.data.get('company')
+        
+        if request.method == 'GET':
+            try:
+                filters = {'code': code_type}
+                if company_id:
+                    filters['company_id'] = company_id
+                
+                rule = CodeRule.objects.filter(**filters).first()
+                
+                if rule:
+                    return Response(self.get_serializer(rule).data)
+                else:
+                    # Return default configuration
+                    default_prefixes = {
+                        'asset_code': 'ZC',
+                        'supply_code': 'BG',
+                        'purchase_order_code': 'PO',
+                    }
+                    return Response({
+                        'prefix': default_prefixes.get(code_type, 'CODE'),
+                        'date_format': 'YYYYMMDD',
+                        'serial_length': 4,
+                        'separator': '',
+                        'reset_cycle': 'daily',
+                        'example': f"{default_prefixes.get(code_type, 'CODE')}{timezone.now().strftime('%Y%m%d')}0001"
+                    })
+                    
+            except Exception as e:
+                return Response({'error': str(e)}, status=400)
+        
+        elif request.method == 'POST':
+            from apps.organizations.models import Company
+            
+            # Get or create company reference
+            company = None
+            if company_id:
+                try:
+                    company = Company.objects.get(id=company_id)
+                except Company.DoesNotExist:
+                    return Response({'error': '公司不存在'}, status=400)
+            
+            # Default names based on code type
+            default_names = {
+                'asset_code': '资产编号规则',
+                'supply_code': '用品编号规则',
+                'purchase_order_code': '采购订单编号规则',
+            }
+            
+            rule_data = {
+                'name': request.data.get('name', default_names.get(code_type, f'{code_type}编号规则')),
+                'prefix': request.data.get('prefix', 'CODE'),
+                'date_format': request.data.get('date_format', 'YYYYMMDD'),
+                'serial_length': request.data.get('serial_length', 4),
+                'separator': request.data.get('separator', ''),
+                'reset_cycle': request.data.get('reset_cycle', 'daily'),
+                'is_active': True
+            }
+            
+            if company:
+                rule, created = CodeRule.objects.update_or_create(
+                    company=company,
+                    code=code_type,
+                    defaults=rule_data
+                )
+            else:
+                # For system-wide rules without company
+                rule, created = CodeRule.objects.update_or_create(
+                    company__isnull=True,
+                    code=code_type,
+                    defaults={**rule_data, 'company': None}
+                )
             
             return Response({
-                'code': asset_code
+                'message': '编号规则保存成功',
+                'data': self.get_serializer(rule).data
             })
-            
-        except Exception as e:
-            return Response({'error': f'生成编号失败: {str(e)}'}, status=500)
 
 
 class SystemConfigViewSet(viewsets.ModelViewSet):
