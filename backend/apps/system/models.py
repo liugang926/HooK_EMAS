@@ -4,11 +4,11 @@
 from django.db import models
 
 # 导入动态表单模型
-from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig
+from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig, FormLayout
 
 __all__ = [
     'SystemConfig', 'OperationLog', 'CodeRule', 'DataDictionary',
-    'FieldGroup', 'FieldDefinition', 'ModuleFormConfig'
+    'FieldGroup', 'FieldDefinition', 'ModuleFormConfig', 'FormLayout'
 ]
 
 

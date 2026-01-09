@@ -344,6 +344,7 @@ import {
   updateCompany,
   deleteCompany
 } from '@/api/organizations'
+import { extractListData } from '@/utils/api-helpers'
 
 const appStore = useAppStore()
 
@@ -443,7 +444,7 @@ async function loadCompanies() {
   loading.value = true
   try {
     const res = await getCompanies()
-    companies.value = res.results || res || []
+    companies.value = extractListData(res)
   } catch (error) {
     console.error('加载公司列表失败:', error)
     ElMessage.error('加载公司列表失败')

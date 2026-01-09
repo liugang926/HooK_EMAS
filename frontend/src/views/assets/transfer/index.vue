@@ -352,6 +352,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { Plus, Search, Filter, Refresh, Setting } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -536,8 +537,9 @@ async function loadTransferList() {
     }
     
     const res = await request.get('/assets/transfers/', { params })
-    transferList.value = res?.results || res || []
-    pagination.total = res?.count || 0
+    transferList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || 0
   } catch (error) {
     console.error('加载调拨记录失败:', error)
     ElMessage.error('加载调拨记录失败')
@@ -556,7 +558,7 @@ async function searchAssets(query) {
         page_size: 50
       }
     })
-    availableAssets.value = res?.results || res || []
+    availableAssets.value = extractListData(res)
   } catch (error) {
     console.error('搜索资产失败:', error)
   } finally {
@@ -606,7 +608,7 @@ async function loadUserAssets(userId) {
         page_size: 999
       }
     })
-    selectedAssetDetails.value = res?.results || res || []
+    selectedAssetDetails.value = extractListData(res)
     // 自动设置资产ID列表
     transferForm.assets = selectedAssetDetails.value.map(a => a.id)
   } catch (error) {
@@ -629,7 +631,7 @@ async function loadDepartmentAssets(departmentId) {
         page_size: 999
       }
     })
-    selectedAssetDetails.value = res?.results || res || []
+    selectedAssetDetails.value = extractListData(res)
     // 自动设置资产ID列表
     transferForm.assets = selectedAssetDetails.value.map(a => a.id)
   } catch (error) {
@@ -667,7 +669,7 @@ function filterLocation(value, data) {
 async function loadDepartments() {
   try {
     const res = await request.get('/organizations/departments/tree/')
-    const data = res || []
+    const data = extractListData(res)
     departmentOptions.value = addPathToTree(data, '')
   } catch (error) {
     console.error('加载部门失败:', error)
@@ -694,7 +696,7 @@ function addPathToTree(nodes, parentPath) {
 async function loadLocations() {
   try {
     const res = await request.get('/organizations/locations/tree/')
-    const data = res || []
+    const data = extractListData(res)
     locationOptions.value = addPathToTree(data, '')
   } catch (error) {
     console.error('加载位置失败:', error)
@@ -705,7 +707,7 @@ async function loadLocations() {
 async function loadUsers() {
   try {
     const res = await request.get('/auth/users/', { params: { page_size: 1000 } })
-    userOptions.value = res?.results || res || []
+    userOptions.value = extractListData(res)
   } catch (error) {
     console.error('加载用户失败:', error)
   }

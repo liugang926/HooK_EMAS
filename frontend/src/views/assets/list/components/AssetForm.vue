@@ -281,6 +281,131 @@
               />
             </el-form-item>
           </el-tab-pane>
+          
+          <!-- 自定义字段 -->
+          <el-tab-pane v-if="customFields.length > 0" label="自定义字段" name="custom">
+            <el-row :gutter="20">
+              <el-col 
+                v-for="field in customFields" 
+                :key="field.key" 
+                :span="field.width || 8"
+              >
+                <el-form-item :label="field.label" :required="field.required">
+                  <!-- 文本类型 -->
+                  <el-input
+                    v-if="field.type === 'text'"
+                    v-model="form.custom_fields[field.key]"
+                    :placeholder="field.placeholder || '请输入'"
+                    :readonly="field.readonly"
+                  />
+                  
+                  <!-- 多行文本 -->
+                  <el-input
+                    v-else-if="field.type === 'textarea'"
+                    v-model="form.custom_fields[field.key]"
+                    type="textarea"
+                    :rows="3"
+                    :placeholder="field.placeholder || '请输入'"
+                    :readonly="field.readonly"
+                  />
+                  
+                  <!-- 数字类型 -->
+                  <el-input-number
+                    v-else-if="field.type === 'number'"
+                    v-model="form.custom_fields[field.key]"
+                    :min="field.numberConfig?.min"
+                    :max="field.numberConfig?.max"
+                    :readonly="field.readonly"
+                    style="width: 100%"
+                  />
+                  
+                  <!-- 小数类型 -->
+                  <el-input-number
+                    v-else-if="field.type === 'decimal'"
+                    v-model="form.custom_fields[field.key]"
+                    :min="field.numberConfig?.min"
+                    :max="field.numberConfig?.max"
+                    :precision="field.numberConfig?.precision || 2"
+                    :readonly="field.readonly"
+                    style="width: 100%"
+                  />
+                  
+                  <!-- 日期类型 -->
+                  <el-date-picker
+                    v-else-if="field.type === 'date'"
+                    v-model="form.custom_fields[field.key]"
+                    type="date"
+                    value-format="YYYY-MM-DD"
+                    :placeholder="field.placeholder || '请选择日期'"
+                    :readonly="field.readonly"
+                    style="width: 100%"
+                  />
+                  
+                  <!-- 日期时间类型 -->
+                  <el-date-picker
+                    v-else-if="field.type === 'datetime'"
+                    v-model="form.custom_fields[field.key]"
+                    type="datetime"
+                    value-format="YYYY-MM-DD HH:mm:ss"
+                    :placeholder="field.placeholder || '请选择日期时间'"
+                    :readonly="field.readonly"
+                    style="width: 100%"
+                  />
+                  
+                  <!-- 下拉选择 -->
+                  <el-select
+                    v-else-if="field.type === 'select'"
+                    v-model="form.custom_fields[field.key]"
+                    :placeholder="field.placeholder || '请选择'"
+                    :disabled="field.readonly"
+                    clearable
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="opt in field.options"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    />
+                  </el-select>
+                  
+                  <!-- 多选 -->
+                  <el-select
+                    v-else-if="field.type === 'multi_select'"
+                    v-model="form.custom_fields[field.key]"
+                    :placeholder="field.placeholder || '请选择'"
+                    :disabled="field.readonly"
+                    multiple
+                    clearable
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="opt in field.options"
+                      :key="opt.value"
+                      :label="opt.label"
+                      :value="opt.value"
+                    />
+                  </el-select>
+                  
+                  <!-- 开关 -->
+                  <el-switch
+                    v-else-if="field.type === 'switch'"
+                    v-model="form.custom_fields[field.key]"
+                    :disabled="field.readonly"
+                  />
+                  
+                  <!-- 默认文本 -->
+                  <el-input
+                    v-else
+                    v-model="form.custom_fields[field.key]"
+                    :placeholder="field.placeholder || '请输入'"
+                    :readonly="field.readonly"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-empty v-if="customFields.length === 0" description="暂无自定义字段" />
+          </el-tab-pane>
         </el-tabs>
       </el-form>
     </div>
@@ -306,6 +431,7 @@ import { Plus, ZoomIn, Delete } from '@element-plus/icons-vue'
 import { UserSelect, DepartmentSelect, LocationSelect, CategorySelect } from '@/components/common'
 import { createAsset, updateAsset, createAssetWithImage, updateAssetWithImage } from '@/api/assets'
 import request from '@/utils/request'
+import { extractListData, withAllItems } from '@/utils/api-helpers'
 
 const props = defineProps({
   modelValue: {
@@ -328,6 +454,7 @@ const previewDialogVisible = ref(false)
 
 // 字段配置
 const fieldConfigs = ref({})
+const customFields = ref([])  // 自定义字段列表
 const configLoading = ref(false)
 
 // 图片相关
@@ -381,7 +508,8 @@ const defaultForm = {
   barcode: '',
   qrcode: '',
   image: '',
-  remark: ''
+  remark: '',
+  custom_fields: {}  // 自定义字段值
 }
 
 // 表单数据
@@ -419,6 +547,51 @@ async function loadFieldConfigs() {
     fieldConfigs.value = {}
   } finally {
     configLoading.value = false
+  }
+}
+
+// 加载自定义字段列表(非系统字段)
+async function loadCustomFields() {
+  try {
+    const mode = isEdit.value ? 'edit' : 'create'
+    const res = await request.get('/system/form/fields/', {
+      params: withAllItems({ module: 'asset', is_system: false, is_active: true })
+    })
+    const fields = extractListData(res)
+    
+    // 转换为前端格式并过滤隐藏字段
+    customFields.value = fields
+      .filter(f => {
+        if (mode === 'create' && f.is_hidden_on_create) return false
+        if (mode === 'edit' && f.is_hidden_on_edit) return false
+        if (f.is_hidden) return false
+        return true
+      })
+      .map(f => ({
+        key: f.field_key,
+        label: f.field_name,
+        type: f.field_type,
+        required: f.is_required,
+        readonly: f.is_readonly || (mode === 'create' && f.is_readonly_on_create) || (mode === 'edit' && f.is_readonly_on_edit),
+        placeholder: f.placeholder,
+        width: f.width || 8,
+        options: f.options || [],
+        numberConfig: f.number_config,
+        defaultValue: f.default_value,
+      }))
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    
+    console.log('Custom fields loaded:', customFields.value)
+    
+    // 初始化自定义字段默认值
+    customFields.value.forEach(field => {
+      if (form.custom_fields[field.key] === undefined) {
+        form.custom_fields[field.key] = field.defaultValue ?? null
+      }
+    })
+  } catch (error) {
+    console.error('加载自定义字段失败:', error)
+    customFields.value = []
   }
 }
 
@@ -491,7 +664,8 @@ watch(() => props.asset, (val) => {
       barcode: val.barcode || '',
       qrcode: val.qrcode || '',
       image: val.image || '',
-      remark: val.remark || ''
+      remark: val.remark || '',
+      custom_fields: val.custom_fields || {}
     })
     // 清除本地图片状态
     imageFile.value = null
@@ -502,9 +676,10 @@ watch(() => props.asset, (val) => {
 }, { immediate: true })
 
 // 监听对话框显示，加载字段配置
-watch(() => props.modelValue, (visible) => {
-  if (visible) {
+watch(() => props.modelValue, (val) => {
+  if (val) {
     loadFieldConfigs()
+    loadCustomFields()
   }
 }, { immediate: true })
 
@@ -617,7 +792,8 @@ function buildSubmitData() {
     manager: form.manager,
     rfid_code: form.rfid_code,
     barcode: form.barcode,
-    remark: form.remark
+    remark: form.remark,
+    custom_fields: form.custom_fields
   }
   
   // 如果资产编号有值，则包含在提交数据中（允许编辑时修改资产编号）

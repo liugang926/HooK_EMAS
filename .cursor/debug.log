@@ -1,0 +1,4 @@
+{"location":"inbound/index.vue:submitForm","message":"Inbound submit called","data":{"company":1,"warehouse":2,"items_count":1},"timestamp":1767930929376,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"outbound/index.vue:submitForm","message":"Outbound submit called","data":{"company":1,"warehouse":2,"receive_user":182,"items_count":1},"timestamp":1767931003787,"sessionId":"debug-session","hypothesisId":"H2"}
+{"location":"settings/index.vue:loadCodeRule","message":"Loading code rules","data":{},"timestamp":1767938346020,"sessionId":"debug-session","hypothesisId":"H3"}
+{"location":"settings/index.vue:loadCodeRule","message":"Loading code rules","data":{},"timestamp":1767938347755,"sessionId":"debug-session","hypothesisId":"H3"}

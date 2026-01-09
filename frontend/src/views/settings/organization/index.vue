@@ -430,6 +430,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Plus, Search, Refresh, Edit, Delete, User, More, OfficeBuilding } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '@/utils/request'
+import { extractListData } from '@/utils/api-helpers'
 
 const searchKey = ref('')
 const currentDept = ref(null)
@@ -482,7 +483,7 @@ async function loadEmployees(deptId = null) {
       url += `?department=${deptId}`
     }
     const res = await request.get(url)
-    const users = res.results || res || []
+    const users = extractListData(res)
     employeeList.value = users.map(user => ({
       id: user.id,
       name: user.nickname || user.display_name || user.first_name || user.username,
@@ -523,7 +524,7 @@ function getOtherDepartmentsTooltip(row) {
 async function loadAllEmployees() {
   try {
     const res = await request.get('/auth/users/?page_size=1000')
-    const users = res.results || res || []
+    const users = extractListData(res)
     allEmployees.value = users.map(user => ({
       id: user.id,
       name: user.nickname || user.display_name || user.first_name || user.username,
@@ -593,7 +594,7 @@ async function searchEmployees(keyword) {
     const res = await request.get('/auth/users/', {
       params: { search: keyword, page_size: 20 }
     })
-    const users = res.results || res || []
+    const users = extractListData(res)
     searchedEmployees.value = users.map(user => ({
       id: user.id,
       name: user.nickname || user.display_name || user.first_name || user.username,

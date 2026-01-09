@@ -261,28 +261,155 @@
       </template>
     </el-dialog>
     
-    <!-- 查看详情对话框 -->
-    <el-dialog v-model="viewDialogVisible" title="用品详情" width="600px">
-      <el-descriptions :column="2" border v-if="currentSupply">
-        <el-descriptions-item label="用品编号">{{ currentSupply.code }}</el-descriptions-item>
-        <el-descriptions-item label="用品名称">{{ currentSupply.name }}</el-descriptions-item>
-        <el-descriptions-item label="分类">{{ currentSupply.category_name }}</el-descriptions-item>
-        <el-descriptions-item label="规格型号">{{ currentSupply.model || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="单位">{{ currentSupply.unit }}</el-descriptions-item>
-        <el-descriptions-item label="单价">{{ currentSupply.price ? `¥${currentSupply.price}` : '-' }}</el-descriptions-item>
-        <el-descriptions-item label="当前库存">{{ currentSupply.total_stock || 0 }}</el-descriptions-item>
-        <el-descriptions-item label="库存预警">{{ currentSupply.min_stock || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentSupply.is_active ? 'success' : 'info'" size="small">
-            {{ currentSupply.is_active ? '启用' : '禁用' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDateTime(currentSupply.created_at) }}</el-descriptions-item>
-        <el-descriptions-item label="描述" :span="2">{{ currentSupply.description || '-' }}</el-descriptions-item>
-      </el-descriptions>
+    <!-- 查看详情对话框 (带标签页) -->
+    <el-dialog v-model="viewDialogVisible" title="用品详情" width="800px">
+      <div v-if="currentSupply">
+        <div class="supply-header">
+          <h3>{{ currentSupply.name }}</h3>
+          <p class="supply-code">编号：{{ currentSupply.code }}</p>
+          <div class="tags-row">
+            <el-tag :type="currentSupply.is_active ? 'success' : 'info'">{{ currentSupply.is_active ? '启用' : '禁用' }}</el-tag>
+            <el-tag v-if="currentSupply.category_name" type="info">{{ currentSupply.category_name }}</el-tag>
+            <el-tag :type="(currentSupply.total_stock || 0) <= (currentSupply.min_stock || 0) ? 'danger' : 'success'">
+              库存: {{ currentSupply.total_stock || 0 }}
+            </el-tag>
+          </div>
+        </div>
+        
+        <el-tabs v-model="activeDetailTab">
+          <el-tab-pane label="基本信息" name="basic">
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="用品编号">{{ currentSupply.code }}</el-descriptions-item>
+              <el-descriptions-item label="用品名称">{{ currentSupply.name }}</el-descriptions-item>
+              <el-descriptions-item label="分类">{{ currentSupply.category_name }}</el-descriptions-item>
+              <el-descriptions-item label="规格型号">{{ currentSupply.model || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="单位">{{ currentSupply.unit }}</el-descriptions-item>
+              <el-descriptions-item label="单价">{{ currentSupply.price ? `¥${currentSupply.price}` : '-' }}</el-descriptions-item>
+              <el-descriptions-item label="当前库存">{{ currentSupply.total_stock || 0 }}</el-descriptions-item>
+              <el-descriptions-item label="库存预警">{{ currentSupply.min_stock || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="创建时间">{{ formatDateTime(currentSupply.created_at) }}</el-descriptions-item>
+              <el-descriptions-item label="状态">
+                <el-tag :type="currentSupply.is_active ? 'success' : 'info'" size="small">
+                  {{ currentSupply.is_active ? '启用' : '禁用' }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="描述" :span="2">{{ currentSupply.description || '-' }}</el-descriptions-item>
+            </el-descriptions>
+          </el-tab-pane>
+          
+          <el-tab-pane label="入库记录" name="inbound">
+            <el-table :data="supplyInboundHistory" size="small" v-loading="loadingHistory">
+              <el-table-column prop="inbound_no" label="入库单号" width="160" />
+              <el-table-column prop="inbound_date" label="入库日期" width="120" />
+              <el-table-column prop="quantity" label="入库数量" width="100" align="center" />
+              <el-table-column prop="price" label="单价" width="100" align="right">
+                <template #default="{ row }">¥{{ row.price }}</template>
+              </el-table-column>
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'approved' ? 'success' : 'info'" size="small">
+                    {{ row.status === 'approved' ? '已入库' : '草稿' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="created_at" label="创建时间" />
+            </el-table>
+            <el-empty v-if="!loadingHistory && supplyInboundHistory.length === 0" description="暂无入库记录" />
+          </el-tab-pane>
+          
+          <el-tab-pane label="领用记录" name="outbound">
+            <el-table :data="supplyOutboundHistory" size="small" v-loading="loadingHistory">
+              <el-table-column prop="outbound_no" label="领用单号" width="160" />
+              <el-table-column prop="outbound_date" label="领用日期" width="120" />
+              <el-table-column prop="quantity" label="领用数量" width="100" align="center" />
+              <el-table-column prop="receive_user_name" label="领用人" width="100" />
+              <el-table-column prop="receive_department_name" label="部门" width="120" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'approved' ? 'success' : 'info'" size="small">
+                    {{ row.status === 'approved' ? '已出库' : '草稿' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-empty v-if="!loadingHistory && supplyOutboundHistory.length === 0" description="暂无领用记录" />
+          </el-tab-pane>
+        </el-tabs>
+      </div>
       <template #footer>
         <el-button @click="viewDialogVisible = false">关闭</el-button>
+        <el-button type="warning" @click="openQuickInbound">入库</el-button>
+        <el-button type="success" @click="openQuickOutbound">领用</el-button>
         <el-button type="primary" @click="handleEditFromView">编辑</el-button>
+      </template>
+    </el-dialog>
+    
+    <!-- 快速入库对话框 -->
+    <el-dialog v-model="quickInboundVisible" title="快速入库" width="500px">
+      <el-form :model="quickInboundForm" label-width="100px">
+        <el-form-item label="用品">
+          <el-input :value="quickSupply?.name" disabled />
+        </el-form-item>
+        <el-form-item label="仓库" required>
+          <el-select v-model="quickInboundForm.warehouse" placeholder="请选择仓库" style="width: 100%">
+            <el-option v-for="w in warehouseOptions" :key="w.id" :label="w.name" :value="w.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="入库日期" required>
+          <el-date-picker v-model="quickInboundForm.inbound_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="数量" required>
+          <el-input-number v-model="quickInboundForm.quantity" :min="1" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="单价">
+          <el-input-number v-model="quickInboundForm.price" :min="0" :precision="2" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickInboundVisible = false">取消</el-button>
+        <el-button type="primary" :loading="quickSubmitting" @click="submitQuickInbound">确认入库</el-button>
+      </template>
+    </el-dialog>
+    
+    <!-- 快速领用对话框 -->
+    <el-dialog v-model="quickOutboundVisible" title="快速领用" width="500px">
+      <el-form :model="quickOutboundForm" label-width="100px">
+        <el-form-item label="用品">
+          <el-input :value="quickSupply?.name" disabled />
+        </el-form-item>
+        <el-form-item label="可用库存">
+          <el-tag :type="(quickSupply?.total_stock || 0) > 0 ? 'success' : 'danger'">
+            {{ quickSupply?.total_stock || 0 }} {{ quickSupply?.unit }}
+          </el-tag>
+        </el-form-item>
+        <el-form-item label="出库仓库" required>
+          <el-select v-model="quickOutboundForm.warehouse" placeholder="请选择仓库" style="width: 100%">
+            <el-option v-for="w in warehouseOptions" :key="w.id" :label="w.name" :value="w.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="领用日期" required>
+          <el-date-picker v-model="quickOutboundForm.outbound_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="领用人" required>
+          <el-select v-model="quickOutboundForm.receive_user" placeholder="请选择领用人" style="width: 100%" filterable>
+            <el-option v-for="u in userOptions" :key="u.id" :label="`${u.display_name || u.username} ${u.department_name ? '(' + u.department_name + ')' : ''}`" :value="u.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="领用部门">
+          <el-select v-model="quickOutboundForm.receive_department" placeholder="请选择部门" style="width: 100%" filterable clearable>
+            <el-option v-for="d in departmentOptions" :key="d.id" :label="d.name" :value="d.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="领用数量" required>
+          <el-input-number v-model="quickOutboundForm.quantity" :min="1" :max="quickSupply?.total_stock || 9999" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="领用原因">
+          <el-input v-model="quickOutboundForm.reason" type="textarea" :rows="2" placeholder="请输入领用原因" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="quickOutboundVisible = false">取消</el-button>
+        <el-button type="primary" :loading="quickSubmitting" @click="submitQuickOutbound">确认领用</el-button>
       </template>
     </el-dialog>
   </div>
@@ -295,10 +422,16 @@ import { Plus, Search, Filter, Refresh, Setting, Download, Upload, ArrowDown } f
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   getSupplies, getSupply, createSupply, updateSupply, deleteSupply,
-  getSupplyCategories, generateSupplyCode 
+  getSupplyCategories, generateSupplyCode,
+  getSupplyInbounds, createSupplyInbound, approveSupplyInbound,
+  getSupplyOutbounds, createSupplyOutbound, approveSupplyOutbound,
+  getWarehouses, getUsers, getDepartments
 } from '@/api/supplies'
+import { useAppStore } from '@/stores/app'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 const router = useRouter()
+const appStore = useAppStore()
 
 // ===== 状态定义 =====
 const loading = ref(false)
@@ -309,6 +442,37 @@ const formDialogTitle = ref('新增用品')
 const viewDialogVisible = ref(false)
 const currentSupply = ref(null)
 const selectedSupplies = ref([])
+
+// 详情对话框扩展状态
+const activeDetailTab = ref('basic')
+const loadingHistory = ref(false)
+const supplyInboundHistory = ref([])
+const supplyOutboundHistory = ref([])
+
+// 快速入库/领用对话框状态
+const quickInboundVisible = ref(false)
+const quickOutboundVisible = ref(false)
+const quickSupply = ref(null)
+const quickSubmitting = ref(false)
+const quickInboundForm = reactive({
+  warehouse: null,
+  inbound_date: new Date().toISOString().split('T')[0],
+  quantity: 1,
+  price: 0
+})
+const quickOutboundForm = reactive({
+  warehouse: null,
+  outbound_date: new Date().toISOString().split('T')[0],
+  receive_user: null,
+  receive_department: null,
+  quantity: 1,
+  reason: ''
+})
+
+// 下拉选项
+const warehouseOptions = ref([])
+const userOptions = ref([])
+const departmentOptions = ref([])
 
 // 搜索和筛选
 const searchKeyword = ref('')
@@ -427,7 +591,8 @@ async function loadData() {
   try {
     const params = {
       page: pagination.current,
-      page_size: pagination.pageSize
+      page_size: pagination.pageSize,
+      company: appStore.currentCompany?.id
     }
     
     if (searchKeyword.value) {
@@ -447,8 +612,9 @@ async function loadData() {
     }
     
     const res = await getSupplies(params)
-    supplyList.value = res.results || res || []
-    pagination.total = res.count || 0
+    supplyList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || 0
   } catch (error) {
     console.error('加载用品列表失败:', error)
     ElMessage.error('加载数据失败')
@@ -460,7 +626,7 @@ async function loadData() {
 async function loadCategories() {
   try {
     const res = await getSupplyCategories()
-    const data = res.results || res || []
+    const data = extractListData(res)
     categoryOptions.value = buildTree(data)
   } catch (error) {
     console.error('加载分类失败:', error)
@@ -575,12 +741,189 @@ async function handleDelete(row) {
 }
 
 function handleInbound(row) {
-  router.push({ path: '/supplies/inbound', query: { supply_id: row.id } })
+  quickSupply.value = row
+  Object.assign(quickInboundForm, {
+    warehouse: warehouseOptions.value[0]?.id || null,
+    inbound_date: new Date().toISOString().split('T')[0],
+    quantity: 1,
+    price: parseFloat(row.price) || 0
+  })
+  quickInboundVisible.value = true
 }
 
 function handleOutbound(row) {
-  router.push({ path: '/supplies/outbound', query: { supply_id: row.id } })
+  quickSupply.value = row
+  Object.assign(quickOutboundForm, {
+    warehouse: warehouseOptions.value[0]?.id || null,
+    outbound_date: new Date().toISOString().split('T')[0],
+    receive_user: null,
+    receive_department: null,
+    quantity: 1,
+    reason: ''
+  })
+  quickOutboundVisible.value = true
 }
+
+// ===== 快速入库/领用 =====
+function openQuickInbound() {
+  handleInbound(currentSupply.value)
+  viewDialogVisible.value = false
+}
+
+function openQuickOutbound() {
+  handleOutbound(currentSupply.value)
+  viewDialogVisible.value = false
+}
+
+async function submitQuickInbound() {
+  if (!quickInboundForm.warehouse) {
+    ElMessage.warning('请选择仓库')
+    return
+  }
+  
+  quickSubmitting.value = true
+  try {
+    const data = {
+      company: appStore.currentCompany?.id,
+      warehouse: quickInboundForm.warehouse,
+      inbound_date: quickInboundForm.inbound_date,
+      total_amount: (quickInboundForm.quantity * quickInboundForm.price).toFixed(2),
+      items: [{
+        consumable: quickSupply.value.id,
+        quantity: quickInboundForm.quantity,
+        price: quickInboundForm.price,
+        amount: (quickInboundForm.quantity * quickInboundForm.price).toFixed(2)
+      }]
+    }
+    
+    const result = await createSupplyInbound(data)
+    // Auto-approve the inbound
+    await approveSupplyInbound(result.id)
+    
+    ElMessage.success(`入库成功，库存已更新 +${quickInboundForm.quantity}`)
+    quickInboundVisible.value = false
+    loadData() // Refresh list to show updated stock
+  } catch (error) {
+    ElMessage.error('入库失败: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    quickSubmitting.value = false
+  }
+}
+
+async function submitQuickOutbound() {
+  if (!quickOutboundForm.warehouse) {
+    ElMessage.warning('请选择仓库')
+    return
+  }
+  if (!quickOutboundForm.receive_user) {
+    ElMessage.warning('请选择领用人')
+    return
+  }
+  if (quickOutboundForm.quantity > (quickSupply.value?.total_stock || 0)) {
+    ElMessage.warning('领用数量不能超过库存')
+    return
+  }
+  
+  quickSubmitting.value = true
+  try {
+    const data = {
+      company: appStore.currentCompany?.id,
+      warehouse: quickOutboundForm.warehouse,
+      outbound_date: quickOutboundForm.outbound_date,
+      receive_user: quickOutboundForm.receive_user,
+      receive_department: quickOutboundForm.receive_department,
+      reason: quickOutboundForm.reason,
+      items: [{
+        consumable: quickSupply.value.id,
+        quantity: quickOutboundForm.quantity
+      }]
+    }
+    
+    const result = await createSupplyOutbound(data)
+    // Auto-approve the outbound
+    await approveSupplyOutbound(result.id)
+    
+    ElMessage.success(`领用成功，库存已更新 -${quickOutboundForm.quantity}`)
+    quickOutboundVisible.value = false
+    loadData() // Refresh list to show updated stock
+  } catch (error) {
+    ElMessage.error('领用失败: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    quickSubmitting.value = false
+  }
+}
+
+// ===== 加载用品历史记录 =====
+async function loadSupplyHistory(supplyId) {
+  loadingHistory.value = true
+  supplyInboundHistory.value = []
+  supplyOutboundHistory.value = []
+  
+  try {
+    // Load inbound history for this supply
+    const inboundRes = await getSupplyInbounds({ page_size: 100 })
+    const allInbounds = inboundRes.results || []
+    // Filter and flatten to get items for this supply
+    supplyInboundHistory.value = allInbounds.filter(inb => 
+      inb.items?.some(item => item.consumable === supplyId)
+    ).map(inb => {
+      const item = inb.items.find(i => i.consumable === supplyId)
+      return {
+        ...inb,
+        quantity: item?.quantity || 0,
+        price: item?.price || 0
+      }
+    })
+    
+    // Load outbound history for this supply
+    const outboundRes = await getSupplyOutbounds({ page_size: 100 })
+    const allOutbounds = outboundRes.results || []
+    supplyOutboundHistory.value = allOutbounds.filter(out => 
+      out.items?.some(item => item.consumable === supplyId)
+    ).map(out => {
+      const item = out.items.find(i => i.consumable === supplyId)
+      return {
+        ...out,
+        quantity: item?.quantity || 0
+      }
+    })
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// ===== 加载下拉选项 =====
+async function loadQuickOptions() {
+  try {
+    const [warehouseRes, userRes, deptRes] = await Promise.allSettled([
+      getWarehouses(),
+      getUsers(),
+      getDepartments()
+    ])
+    
+    if (warehouseRes.status === 'fulfilled') {
+      warehouseOptions.value = warehouseRes.value.results || warehouseRes.value || []
+    }
+    if (userRes.status === 'fulfilled') {
+      userOptions.value = userRes.value.results || userRes.value || []
+    }
+    if (deptRes.status === 'fulfilled') {
+      departmentOptions.value = deptRes.value.results || deptRes.value || []
+    }
+  } catch (error) {
+    console.error('加载选项失败:', error)
+  }
+}
+
+// Watch for view dialog opening to load history
+watch(viewDialogVisible, (newVal) => {
+  if (newVal && currentSupply.value) {
+    activeDetailTab.value = 'basic'
+    loadSupplyHistory(currentSupply.value.id)
+  }
+})
 
 // 批量操作
 async function handleBatchEnable() {
@@ -663,6 +1006,7 @@ async function submitForm() {
 onMounted(() => {
   loadData()
   loadCategories()
+  loadQuickOptions() // Load warehouse, user, department options for quick dialogs
   
   // 从本地存储恢复列配置
   const savedColumns = localStorage.getItem('supply_list_columns')
@@ -793,6 +1137,29 @@ watch(visibleColumns, (val) => {
     display: flex;
     justify-content: flex-end;
     margin-top: 20px;
+  }
+  
+  .supply-header {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    
+    h3 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      color: #1f2937;
+    }
+    
+    .supply-code {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0 0 12px;
+    }
+    
+    .tags-row {
+      display: flex;
+      gap: 8px;
+    }
   }
 }
 </style>

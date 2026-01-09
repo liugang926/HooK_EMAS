@@ -1,5 +1,23 @@
-# 企业固定资产管理系统 (EAMS) 开发规约（修订版）
+# Antigravity Development Guidelines (EAMS)
 
+> **CRITICAL INSTRUCTIONS FOR AI AGENT:**
+> You must strictly adhere to the following architectural, code style, and business logic guidelines.
+
+## 1. Core Architecture: Service Layer Pattern
+- **Strict Separation**: NEVER write business logic in Django Views (`views.py`). Logic for creating, updating, or processing data must reside in `backend/services/`.
+- **Delegation**: ViewSets should override `create()` or `update()` methods to call the corresponding Service method (e.g., `ReceiveService.create_receive()`). Do NOT use `perform_create()` with inline logic.
+- **Transaction Management**: All multi-step database writes must be atomic. Use `@transaction.atomic` in Service methods, not Views.
+
+## 2. Data Isolation & Context
+- **Company Context**: Every record creation or query must respect the user's current company context.
+- **Reference**: Use `BaseService.get_user_company(user, company_id)` to resolve the correct company ID from the request or session (`current_company_id`).
+
+## 3. Code Quality & Standards
+- **File Size Limit**: No file should exceed 500 lines. Refactor and split large files.
+
+---
+
+# 企业固定资产管理系统 (EAMS) 开发规约
 
 ## 1. 核心架构原则 (Architecture)
 - **前后端分离**：后端使用 Django + DRF，前端使用 Vue 3 (Setup Script) + TypeScript。  

@@ -7,22 +7,49 @@
         </div>
       </template>
       
-      <el-form :inline="true" class="filter-form">
-        <el-form-item label="用品名称">
-          <el-input v-model="filterForm.name" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="库存状态">
-          <el-select v-model="filterForm.stockStatus" placeholder="全部" clearable>
-            <el-option label="正常" value="normal" />
-            <el-option label="低库存预警" value="low" />
-            <el-option label="缺货" value="out" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <!-- List Toolbar -->
+      <div class="list-toolbar">
+        <div class="toolbar-search">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索用品名称..."
+            clearable
+            style="width: 280px"
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            搜索
+          </el-button>
+          <el-button @click="toggleAdvanced">
+            <el-icon><Filter /></el-icon>
+            {{ showAdvanced ? '收起筛选' : '高级筛选' }}
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><Refresh /></el-icon>
+            重置
+          </el-button>
+        </div>
+      </div>
+
+      <!-- Advanced Filters -->
+      <el-collapse-transition>
+        <div v-show="showAdvanced" class="advanced-filters">
+          <el-form :inline="true" class="filter-form">
+            <el-form-item label="库存状态">
+              <el-select v-model="filterForm.stockStatus" placeholder="全部" clearable style="width: 140px">
+                <el-option label="正常" value="normal" />
+                <el-option label="低库存预警" value="low" />
+                <el-option label="缺货" value="out" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-collapse-transition>
       
       <!-- 库存统计卡片 -->
       <el-row :gutter="20" class="stat-cards">
@@ -89,13 +116,18 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+
 import { ElMessage } from 'element-plus'
+import { Search, Filter, Refresh } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAppStore } from '@/stores/app'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 const appStore = useAppStore()
 const loading = ref(false)
-const filterForm = reactive({ name: '', stockStatus: '' })
+const searchKeyword = ref('')
+const showAdvanced = ref(false)
+const filterForm = reactive({ stockStatus: '' })
 const stockList = ref([])
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 
@@ -127,11 +159,12 @@ async function loadData() {
       page_size: pagination.pageSize,
       company: appStore.currentCompany?.id
     }
-    if (filterForm.name) params.search = filterForm.name
+    if (searchKeyword.value) params.search = searchKeyword.value
     
     const res = await request.get('/consumables/stocks/', { params })
-    stockList.value = res.results || res || []
-    pagination.total = res.count || stockList.value.length
+    stockList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || stockList.value.length
   } catch (error) {
     // Mock data
     stockList.value = [
@@ -145,13 +178,17 @@ async function loadData() {
   }
 }
 
+function toggleAdvanced() {
+  showAdvanced.value = !showAdvanced.value
+}
+
 function handleSearch() {
   pagination.page = 1
   loadData()
 }
 
 function handleReset() {
-  filterForm.name = ''
+  searchKeyword.value = ''
   filterForm.stockStatus = ''
   handleSearch()
 }
@@ -172,7 +209,38 @@ onMounted(() => {
     h2 { margin: 0; font-size: 18px; color: #1f2937; } 
   }
   
-  .filter-form { margin-bottom: 16px; }
+  .list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    
+    .toolbar-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
+  
+  .advanced-filters {
+    padding: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    
+    .filter-form {
+      margin-bottom: 0;
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+      }
+    }
+  }
   
   .stat-cards {
     margin-bottom: 20px;

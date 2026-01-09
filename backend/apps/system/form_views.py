@@ -20,13 +20,15 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig
+from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig, FormLayout
 from .form_serializers import (
     FieldGroupSerializer,
     FieldDefinitionSerializer,
     FieldDefinitionCreateSerializer,
     ModuleFormConfigSerializer,
-    BulkFieldUpdateSerializer
+    BulkFieldUpdateSerializer,
+    FormLayoutSerializer,
+    FormLayoutCreateSerializer
 )
 from .module_registry import (
     MODULE_REGISTRY,
@@ -484,3 +486,103 @@ class ModuleFeatureView(APIView):
             'feature': feature,
             'modules': modules
         })
+
+
+class FormLayoutViewSet(viewsets.ModelViewSet):
+    """表单布局视图集
+    
+    提供 FormLayout 的 CRUD 操作和布局查询功能。
+    """
+    
+    queryset = FormLayout.objects.select_related('company', 'created_by').all()
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['module', 'layout_type', 'company', 'is_default', 'is_active']
+    search_fields = ['module', 'layout_name']
+    ordering_fields = ['module', 'layout_type', 'created_at']
+    ordering = ['module', 'layout_type', '-is_default']
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return FormLayoutCreateSerializer
+        return FormLayoutSerializer
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def for_module(self, request):
+        """
+        获取指定模块的布局配置
+        
+        Query params:
+            module: 模块名称 (required)
+            type: 布局类型 (default: form)
+        """
+        module = request.query_params.get('module')
+        layout_type = request.query_params.get('type', 'form')
+        
+        if not module:
+            return Response(
+                {'error': '请提供 module 参数'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 获取当前用户的公司上下文
+        company = getattr(request.user, 'current_company', None)
+        if not company:
+            company = getattr(request.user, 'company', None)
+        
+        # 使用模型方法获取布局
+        layout_config = FormLayout.get_layout_for_module(module, layout_type, company)
+        
+        return Response({
+            'module': module,
+            'layout_type': layout_type,
+            'layout': layout_config
+        })
+    
+    @action(detail=False, methods=['post'])
+    def save_layout(self, request):
+        """
+        保存模块布局（创建或更新）
+        
+        Request body:
+            module: 模块名称
+            layout_type: 布局类型
+            layout_config: 布局JSON
+            company: 公司ID (可选，不传表示全局布局)
+        """
+        module = request.data.get('module')
+        layout_type = request.data.get('layout_type', 'form')
+        layout_config = request.data.get('layout_config', {})
+        company_id = request.data.get('company')
+        
+        if not module:
+            return Response(
+                {'error': '请提供 module 参数'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 查找或创建布局
+        layout, created = FormLayout.objects.update_or_create(
+            module=module,
+            layout_type=layout_type,
+            company_id=company_id,
+            layout_name='',  # 默认布局
+            defaults={
+                'layout_config': layout_config,
+                'is_default': True,
+                'is_active': True,
+                'created_by': request.user if created else FormLayout.objects.get(
+                    module=module, layout_type=layout_type, company_id=company_id, layout_name=''
+                ).created_by
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'created': created,
+            'layout': FormLayoutSerializer(layout).data
+        })
+

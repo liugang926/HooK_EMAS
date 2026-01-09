@@ -11,23 +11,50 @@
         </div>
       </template>
       
-      <el-form :inline="true" class="filter-form">
-        <el-form-item label="领用单号">
-          <el-input v-model="filterForm.search" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="草稿" value="draft" />
-            <el-option label="待审核" value="pending" />
-            <el-option label="已完成" value="approved" />
-            <el-option label="已取消" value="cancelled" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <!-- List Toolbar -->
+      <div class="list-toolbar">
+        <div class="toolbar-search">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索领用单号..."
+            clearable
+            style="width: 280px"
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            搜索
+          </el-button>
+          <el-button @click="toggleAdvanced">
+            <el-icon><Filter /></el-icon>
+            {{ showAdvanced ? '收起筛选' : '高级筛选' }}
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><Refresh /></el-icon>
+            重置
+          </el-button>
+        </div>
+      </div>
+
+      <!-- Advanced Filters -->
+      <el-collapse-transition>
+        <div v-show="showAdvanced" class="advanced-filters">
+          <el-form :inline="true" class="filter-form">
+            <el-form-item label="状态">
+              <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 120px">
+                <el-option label="草稿" value="draft" />
+                <el-option label="待审核" value="pending" />
+                <el-option label="已完成" value="approved" />
+                <el-option label="已取消" value="cancelled" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-collapse-transition>
       
       <el-table :data="outboundList" style="width: 100%" v-loading="loading">
         <el-table-column prop="outbound_no" label="领用单号" width="160" />
@@ -84,7 +111,7 @@
           <el-col :span="8">
             <el-form-item label="领用人">
               <el-select v-model="outboundForm.receive_user" placeholder="请选择" style="width: 100%" filterable>
-                <el-option v-for="item in userOptions" :key="item.id" :label="item.display_name || item.username" :value="item.id" />
+                <el-option v-for="item in userOptions" :key="item.id" :label="`${item.display_name || item.username}${item.department_name ? ' (' + item.department_name + ')' : ''}`" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -148,30 +175,67 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </el-dialog>
+    
+    <!-- View Detail Dialog -->
+    <el-dialog v-model="viewDialogVisible" title="领用单详情" width="800px">
+      <template v-if="currentOutbound">
+        <el-descriptions :column="3" border>
+          <el-descriptions-item label="领用单号">{{ currentOutbound.outbound_no }}</el-descriptions-item>
+          <el-descriptions-item label="出库仓库">{{ currentOutbound.warehouse_name }}</el-descriptions-item>
+          <el-descriptions-item label="领用日期">{{ currentOutbound.outbound_date }}</el-descriptions-item>
+          <el-descriptions-item label="领用人">{{ currentOutbound.receive_user_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="领用部门">{{ currentOutbound.receive_department_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="statusMap[currentOutbound.status]?.type">{{ statusMap[currentOutbound.status]?.label }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="领用原因" :span="3">{{ currentOutbound.reason || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="创建人">{{ currentOutbound.created_by_name }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间" :span="2">{{ currentOutbound.created_at }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="3">{{ currentOutbound.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        
+        <el-divider content-position="left">领用明细</el-divider>
+        
+        <el-table :data="currentOutbound.items" border size="small">
+          <el-table-column prop="consumable_name" label="用品名称" />
+          <el-table-column prop="quantity" label="领用数量" width="120" align="center" />
+        </el-table>
+      </template>
+      <template #footer>
+        <el-button @click="viewDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="handleEditFromView" v-if="currentOutbound?.status === 'draft'">编辑</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import { Plus, Delete, Search, Filter, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAppStore } from '@/stores/app'
 import { 
   getSupplyOutbounds, createSupplyOutbound, updateSupplyOutbound, 
   deleteSupplyOutbound, approveSupplyOutbound,
   getSupplies, getWarehouses, getUsers, getDepartments 
 } from '@/api/supplies'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
+
+const appStore = useAppStore()
 
 const loading = ref(false)
 const submitting = ref(false)
-const filterForm = reactive({ search: '', status: '' })
+const searchKeyword = ref('')
+const showAdvanced = ref(false)
+const filterForm = reactive({ status: '' })
 const outboundList = ref([])
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 
 const statusMap = {
-  draft: { type: 'info', label: '草稿' },
-  pending: { type: 'warning', label: '待审核' },
-  approved: { type: 'success', label: '已完成' },
-  cancelled: { type: 'danger', label: '已取消' }
+  draft: { label: '草稿', type: 'info' },
+  pending: { label: '待审核', type: 'warning' },
+  approved: { label: '已完成', type: 'success' },
+  cancelled: { label: '已取消', type: 'info' }
 }
 
 const warehouseOptions = ref([])
@@ -186,12 +250,13 @@ async function loadData() {
       page: pagination.page, 
       page_size: pagination.pageSize
     }
-    if (filterForm.search) params.search = filterForm.search
+    if (searchKeyword.value) params.search = searchKeyword.value
     if (filterForm.status) params.status = filterForm.status
     
     const res = await getSupplyOutbounds(params)
-    outboundList.value = res.results || []
-    pagination.total = res.count || 0
+    outboundList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || 0
   } catch (error) {
     console.error('加载领用单失败:', error)
     ElMessage.error('加载数据失败')
@@ -232,13 +297,17 @@ function getAvailableStock(consumableId) {
   return supply?.total_stock || 0
 }
 
+function toggleAdvanced() {
+  showAdvanced.value = !showAdvanced.value
+}
+
 function handleSearch() { 
   pagination.page = 1
   loadData() 
 }
 
 function handleReset() { 
-  filterForm.search = ''
+  searchKeyword.value = ''
   filterForm.status = ''
   handleSearch() 
 }
@@ -246,6 +315,8 @@ function handleReset() {
 const formDialogVisible = ref(false)
 const formDialogTitle = ref('新增领用')
 const formRef = ref(null)
+const viewDialogVisible = ref(false)
+const currentOutbound = ref(null)
 const outboundForm = reactive({
   id: null, 
   warehouse: null, 
@@ -272,13 +343,31 @@ function handleAdd() {
   formDialogVisible.value = true
 }
 
-function handleView(row) { 
-  ElMessage.info('查看领用单: ' + row.outbound_no) 
+function handleView(row) {
+  currentOutbound.value = row
+  viewDialogVisible.value = true
 }
 
 function handleEdit(row) { 
   formDialogTitle.value = '编辑领用'
-  formDialogVisible.value = true 
+  Object.assign(outboundForm, {
+    id: row.id,
+    warehouse: row.warehouse,
+    outbound_date: row.outbound_date,
+    receive_user: row.receive_user,
+    receive_department: row.receive_department,
+    reason: row.reason || '',
+    items: row.items?.length > 0 
+      ? row.items.map(i => ({ consumable: i.consumable, quantity: i.quantity }))
+      : [{ consumable: null, quantity: 1 }],
+    remark: row.remark || ''
+  })
+  formDialogVisible.value = true
+}
+
+function handleEditFromView() {
+  viewDialogVisible.value = false
+  handleEdit(currentOutbound.value)
 }
 
 async function handleApprove(row) {
@@ -341,7 +430,11 @@ async function submitForm() {
   
   submitting.value = true
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9146dd84-0cab-43d2-aa3e-85994a696378',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'outbound/index.vue:submitForm',message:'Outbound submit called',data:{company:appStore.currentCompany?.id,warehouse:outboundForm.warehouse,receive_user:outboundForm.receive_user,items_count:outboundForm.items.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     const data = {
+      company: appStore.currentCompany?.id,
       warehouse: outboundForm.warehouse, 
       outbound_date: outboundForm.outbound_date,
       receive_user: outboundForm.receive_user, 
@@ -385,7 +478,38 @@ onMounted(() => {
     align-items: center; 
     h2 { margin: 0; font-size: 18px; color: #1f2937; } 
   }
-  .filter-form { margin-bottom: 16px; }
+  .list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    
+    .toolbar-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
+  
+  .advanced-filters {
+    padding: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    
+    .filter-form {
+      margin-bottom: 0;
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+      }
+    }
+  }
   .pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
   .text-danger { color: #f56c6c; }
 }

@@ -105,6 +105,151 @@ class CodeRuleViewSet(viewsets.ModelViewSet):
                 'data': self.get_serializer(rule).data
             })
     
+    @action(detail=False, methods=['get', 'post'])
+    def supply_code(self, request):
+        """Get or update supply code rule for a company"""
+        company_id = request.query_params.get('company') or request.data.get('company')
+        
+        if request.method == 'GET':
+            try:
+                rule = CodeRule.objects.get(company_id=company_id, code='supply_code')
+                return Response(self.get_serializer(rule).data)
+            except CodeRule.DoesNotExist:
+                # Return default rule
+                return Response({
+                    'prefix': 'BG',
+                    'date_format': 'YYYYMMDD',
+                    'serial_length': 4,
+                    'separator': '',
+                    'reset_cycle': 'daily',
+                    'example': f"BG{timezone.now().strftime('%Y%m%d')}0001"
+                })
+        
+        elif request.method == 'POST':
+            from apps.organizations.models import Company
+            
+            try:
+                company = Company.objects.get(id=company_id) if company_id else None
+            except Company.DoesNotExist:
+                return Response({'error': '公司不存在'}, status=400)
+            
+            rule_data = {
+                'name': '办公用品编号规则',
+                'prefix': request.data.get('prefix', 'BG'),
+                'date_format': request.data.get('date_format', 'YYYYMMDD'),
+                'serial_length': request.data.get('serial_length', 4),
+                'separator': request.data.get('separator', ''),
+                'reset_cycle': request.data.get('reset_cycle', 'daily'),
+                'is_active': True
+            }
+            
+            rule, created = CodeRule.objects.update_or_create(
+                company=company,
+                code='supply_code',
+                defaults=rule_data
+            )
+            
+            return Response({
+                'message': '编号规则保存成功',
+                'data': self.get_serializer(rule).data
+            })
+    
+    @action(detail=False, methods=['get', 'post'])
+    def inbound_code(self, request):
+        """Get or update inbound code rule for a company"""
+        company_id = request.query_params.get('company') or request.data.get('company')
+        
+        if request.method == 'GET':
+            try:
+                rule = CodeRule.objects.get(company_id=company_id, code='inbound_code')
+                return Response(self.get_serializer(rule).data)
+            except CodeRule.DoesNotExist:
+                return Response({
+                    'prefix': 'RK',
+                    'date_format': 'YYYYMMDD',
+                    'serial_length': 4,
+                    'separator': '',
+                    'reset_cycle': 'daily',
+                    'example': f"RK{timezone.now().strftime('%Y%m%d')}0001"
+                })
+        
+        elif request.method == 'POST':
+            from apps.organizations.models import Company
+            
+            try:
+                company = Company.objects.get(id=company_id) if company_id else None
+            except Company.DoesNotExist:
+                return Response({'error': '公司不存在'}, status=400)
+            
+            rule_data = {
+                'name': '入库单编号规则',
+                'prefix': request.data.get('prefix', 'RK'),
+                'date_format': request.data.get('date_format', 'YYYYMMDD'),
+                'serial_length': request.data.get('serial_length', 4),
+                'separator': request.data.get('separator', ''),
+                'reset_cycle': request.data.get('reset_cycle', 'daily'),
+                'is_active': True
+            }
+            
+            rule, created = CodeRule.objects.update_or_create(
+                company=company,
+                code='inbound_code',
+                defaults=rule_data
+            )
+            
+            return Response({
+                'message': '编号规则保存成功',
+                'data': self.get_serializer(rule).data
+            })
+    
+    @action(detail=False, methods=['get', 'post'])
+    def outbound_code(self, request):
+        """Get or update outbound code rule for a company"""
+        company_id = request.query_params.get('company') or request.data.get('company')
+        
+        if request.method == 'GET':
+            try:
+                rule = CodeRule.objects.get(company_id=company_id, code='outbound_code')
+                return Response(self.get_serializer(rule).data)
+            except CodeRule.DoesNotExist:
+                return Response({
+                    'prefix': 'LY',
+                    'date_format': 'YYYYMMDD',
+                    'serial_length': 4,
+                    'separator': '',
+                    'reset_cycle': 'daily',
+                    'example': f"LY{timezone.now().strftime('%Y%m%d')}0001"
+                })
+        
+        elif request.method == 'POST':
+            from apps.organizations.models import Company
+            
+            try:
+                company = Company.objects.get(id=company_id) if company_id else None
+            except Company.DoesNotExist:
+                return Response({'error': '公司不存在'}, status=400)
+            
+            rule_data = {
+                'name': '领用单编号规则',
+                'prefix': request.data.get('prefix', 'LY'),
+                'date_format': request.data.get('date_format', 'YYYYMMDD'),
+                'serial_length': request.data.get('serial_length', 4),
+                'separator': request.data.get('separator', ''),
+                'reset_cycle': request.data.get('reset_cycle', 'daily'),
+                'is_active': True
+            }
+            
+            rule, created = CodeRule.objects.update_or_create(
+                company=company,
+                code='outbound_code',
+                defaults=rule_data
+            )
+            
+            return Response({
+                'message': '编号规则保存成功',
+                'data': self.get_serializer(rule).data
+            })
+    
     @action(detail=False, methods=['post'])
     def generate_code(self, request):
         """

@@ -422,6 +422,7 @@ import { Refresh, InfoFilled, QuestionFilled, Warning } from '@element-plus/icon
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '@/utils/request'
 import { useAppStore } from '@/stores/app'
+import { extractListData } from '@/utils/api-helpers'
 
 const appStore = useAppStore()
 
@@ -585,7 +586,7 @@ async function executeSync() {
 async function loadCompanies() {
   try {
     const res = await request.get('/organizations/companies/')
-    companies.value = res.results || res || []
+    companies.value = extractListData(res)
     if (companies.value.length > 0) {
       selectedCompanyId.value = appStore.currentCompany?.id || companies.value[0].id
       loadConfigs()
@@ -600,7 +601,7 @@ async function loadRoles() {
   try {
     const params = selectedCompanyId.value ? { company: selectedCompanyId.value } : {}
     const res = await request.get('/auth/roles/', { params })
-    roles.value = res.results || res || []
+    roles.value = extractListData(res)
   } catch (error) {
     console.error('加载角色列表失败:', error)
   }
@@ -618,7 +619,7 @@ async function loadConfigs() {
   
   try {
     const res = await request.get('/sso/configs/', { params: { company: selectedCompanyId.value } })
-    const configs = res.results || res || []
+    const configs = extractListData(res)
     
     // 重置配置
     resetConfigs()

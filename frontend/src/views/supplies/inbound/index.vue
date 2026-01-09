@@ -11,23 +11,50 @@
         </div>
       </template>
       
-      <el-form :inline="true" class="filter-form">
-        <el-form-item label="入库单号">
-          <el-input v-model="filterForm.search" placeholder="请输入" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="草稿" value="draft" />
-            <el-option label="待审核" value="pending" />
-            <el-option label="已完成" value="approved" />
-            <el-option label="已取消" value="cancelled" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+      <!-- List Toolbar -->
+      <div class="list-toolbar">
+        <div class="toolbar-search">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索入库单号..."
+            clearable
+            style="width: 280px"
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-button type="primary" @click="handleSearch">
+            <el-icon><Search /></el-icon>
+            搜索
+          </el-button>
+          <el-button @click="toggleAdvanced">
+            <el-icon><Filter /></el-icon>
+            {{ showAdvanced ? '收起筛选' : '高级筛选' }}
+          </el-button>
+          <el-button @click="handleReset">
+            <el-icon><Refresh /></el-icon>
+            重置
+          </el-button>
+        </div>
+      </div>
+
+      <!-- Advanced Filters -->
+      <el-collapse-transition>
+        <div v-show="showAdvanced" class="advanced-filters">
+          <el-form :inline="true" class="filter-form">
+            <el-form-item label="状态">
+              <el-select v-model="filterForm.status" placeholder="全部" clearable style="width: 140px">
+                <el-option label="草稿" value="draft" />
+                <el-option label="待审核" value="pending" />
+                <el-option label="已完成" value="approved" />
+                <el-option label="已取消" value="cancelled" />
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-collapse-transition>
       
       <el-table :data="inboundList" style="width: 100%" v-loading="loading">
         <el-table-column prop="inbound_no" label="入库单号" width="160" />
@@ -139,22 +166,65 @@
         <el-button type="primary" @click="submitForm" :loading="submitting">保存</el-button>
       </template>
     </el-dialog>
+    
+    <!-- View Detail Dialog -->
+    <el-dialog v-model="viewDialogVisible" title="入库单详情" width="800px">
+      <template v-if="currentInbound">
+        <el-descriptions :column="3" border>
+          <el-descriptions-item label="入库单号">{{ currentInbound.inbound_no }}</el-descriptions-item>
+          <el-descriptions-item label="仓库">{{ currentInbound.warehouse_name }}</el-descriptions-item>
+          <el-descriptions-item label="供应商">{{ currentInbound.supplier_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="入库日期">{{ currentInbound.inbound_date }}</el-descriptions-item>
+          <el-descriptions-item label="总金额">¥{{ currentInbound.total_amount }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="statusMap[currentInbound.status]?.type">{{ statusMap[currentInbound.status]?.label }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="创建人">{{ currentInbound.created_by_name }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间" :span="2">{{ currentInbound.created_at }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="3">{{ currentInbound.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        
+        <el-divider content-position="left">入库明细</el-divider>
+        
+        <el-table :data="currentInbound.items" border size="small">
+          <el-table-column prop="consumable_name" label="用品名称" />
+          <el-table-column prop="quantity" label="数量" width="100" align="center" />
+          <el-table-column prop="price" label="单价" width="120" align="right">
+            <template #default="{ row }">¥{{ row.price }}</template>
+          </el-table-column>
+          <el-table-column prop="amount" label="金额" width="120" align="right">
+            <template #default="{ row }">¥{{ row.amount }}</template>
+          </el-table-column>
+        </el-table>
+      </template>
+      <template #footer>
+        <el-button @click="viewDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="handleEditFromView" v-if="currentInbound?.status === 'draft'">编辑</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Delete } from '@element-plus/icons-vue'
+
+import { Plus, Delete, Search, Filter, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAppStore } from '@/stores/app'
 import { 
   getSupplyInbounds, createSupplyInbound, updateSupplyInbound, 
   deleteSupplyInbound, approveSupplyInbound,
   getSupplies, getWarehouses, getSuppliers 
 } from '@/api/supplies'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
+
+const appStore = useAppStore()
 
 const loading = ref(false)
 const submitting = ref(false)
-const filterForm = reactive({ search: '', status: '' })
+const searchKeyword = ref('')
+const showAdvanced = ref(false)
+const filterForm = reactive({ status: '' })
 const inboundList = ref([])
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 
@@ -176,12 +246,13 @@ async function loadData() {
       page: pagination.page, 
       page_size: pagination.pageSize
     }
-    if (filterForm.search) params.search = filterForm.search
+    if (searchKeyword.value) params.search = searchKeyword.value
     if (filterForm.status) params.status = filterForm.status
     
     const res = await getSupplyInbounds(params)
-    inboundList.value = res.results || []
-    pagination.total = res.count || 0
+    inboundList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || 0
   } catch (error) {
     console.error('加载入库单失败:', error)
     ElMessage.error('加载数据失败')
@@ -212,13 +283,17 @@ async function loadOptions() {
   }
 }
 
+function toggleAdvanced() {
+  showAdvanced.value = !showAdvanced.value
+}
+
 function handleSearch() { 
   pagination.page = 1
   loadData() 
 }
 
 function handleReset() { 
-  filterForm.search = ''
+  searchKeyword.value = ''
   filterForm.status = ''
   handleSearch() 
 }
@@ -226,6 +301,8 @@ function handleReset() {
 const formDialogVisible = ref(false)
 const formDialogTitle = ref('新增入库')
 const formRef = ref(null)
+const viewDialogVisible = ref(false)
+const currentInbound = ref(null)
 const inboundForm = reactive({
   id: null, 
   warehouse: null, 
@@ -248,13 +325,29 @@ function handleAdd() {
   formDialogVisible.value = true
 }
 
-function handleView(row) { 
-  ElMessage.info('查看入库单: ' + row.inbound_no) 
+function handleView(row) {
+  currentInbound.value = row
+  viewDialogVisible.value = true
 }
 
 function handleEdit(row) { 
   formDialogTitle.value = '编辑入库'
-  formDialogVisible.value = true 
+  Object.assign(inboundForm, {
+    id: row.id,
+    warehouse: row.warehouse,
+    inbound_date: row.inbound_date,
+    supplier: row.supplier,
+    items: row.items?.length > 0 
+      ? row.items.map(i => ({ consumable: i.consumable, quantity: i.quantity, price: parseFloat(i.price) || 0 }))
+      : [{ consumable: null, quantity: 1, price: 0 }],
+    remark: row.remark || ''
+  })
+  formDialogVisible.value = true
+}
+
+function handleEditFromView() {
+  viewDialogVisible.value = false
+  handleEdit(currentInbound.value)
 }
 
 async function handleApprove(row) {
@@ -305,8 +398,12 @@ async function submitForm() {
   
   submitting.value = true
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9146dd84-0cab-43d2-aa3e-85994a696378',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'inbound/index.vue:submitForm',message:'Inbound submit called',data:{company:appStore.currentCompany?.id,warehouse:inboundForm.warehouse,items_count:inboundForm.items.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
+    // #endregion
     const totalAmount = inboundForm.items.reduce((sum, i) => sum + (i.quantity * i.price), 0)
     const data = {
+      company: appStore.currentCompany?.id,
       warehouse: inboundForm.warehouse, 
       inbound_date: inboundForm.inbound_date,
       supplier: inboundForm.supplier, 
@@ -351,7 +448,38 @@ onMounted(() => {
     align-items: center; 
     h2 { margin: 0; font-size: 18px; color: #1f2937; } 
   }
-  .filter-form { margin-bottom: 16px; }
+  .list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    
+    .toolbar-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
+  
+  .advanced-filters {
+    padding: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    
+    .filter-form {
+      margin-bottom: 0;
+      :deep(.el-form-item) {
+        margin-bottom: 0;
+      }
+    }
+  }
   .pagination-wrapper { margin-top: 16px; display: flex; justify-content: flex-end; }
 }
 </style>

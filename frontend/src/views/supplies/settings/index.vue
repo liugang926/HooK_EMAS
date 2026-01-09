@@ -80,39 +80,115 @@
         
         <!-- 编号规则 -->
         <el-tab-pane label="编号规则" name="code">
-          <div class="setting-section" v-loading="codeRuleLoading">
-            <h3>用品编号规则</h3>
-            <el-form label-width="120px" style="max-width: 500px">
-              <el-form-item label="编号前缀">
-                <el-input v-model="codeRule.prefix" placeholder="如：BG" />
-              </el-form-item>
-              <el-form-item label="日期格式">
-                <el-select v-model="codeRule.dateFormat" style="width: 100%">
-                  <el-option label="年 (YYYY)" value="YYYY" />
-                  <el-option label="年月 (YYYYMM)" value="YYYYMM" />
-                  <el-option label="年月日 (YYYYMMDD)" value="YYYYMMDD" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="流水号位数">
-                <el-input-number v-model="codeRule.serialLength" :min="3" :max="8" />
-              </el-form-item>
-              <el-form-item label="流水号重置">
-                <el-select v-model="codeRule.resetCycle" style="width: 100%">
-                  <el-option label="每天重置" value="daily" />
-                  <el-option label="每月重置" value="monthly" />
-                  <el-option label="每年重置" value="yearly" />
-                  <el-option label="永不重置" value="never" />
-                </el-select>
-                <div class="form-tip">流水号在指定周期后从1开始重新计数</div>
-              </el-form-item>
-              <el-form-item label="示例">
-                <el-tag size="large" type="warning">{{ codeExample }}</el-tag>
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" :loading="codeRuleLoading" @click="handleSaveCodeRule">保存设置</el-button>
-              </el-form-item>
-            </el-form>
-          </div>
+          <el-row :gutter="24">
+            <!-- 用品编号规则 -->
+            <el-col :span="8">
+              <div class="setting-section code-rule-card" v-loading="codeRuleLoading">
+                <h3>用品编号规则</h3>
+                <el-form label-width="100px">
+                  <el-form-item label="编号前缀">
+                    <el-input v-model="codeRule.prefix" placeholder="如：BG" />
+                  </el-form-item>
+                  <el-form-item label="日期格式">
+                    <el-select v-model="codeRule.dateFormat" style="width: 100%">
+                      <el-option label="年 (YYYY)" value="YYYY" />
+                      <el-option label="年月 (YYYYMM)" value="YYYYMM" />
+                      <el-option label="年月日 (YYYYMMDD)" value="YYYYMMDD" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="流水号位数">
+                    <el-input-number v-model="codeRule.serialLength" :min="3" :max="8" style="width: 100%" />
+                  </el-form-item>
+                  <el-form-item label="流水号重置">
+                    <el-select v-model="codeRule.resetCycle" style="width: 100%">
+                      <el-option label="每天重置" value="daily" />
+                      <el-option label="每月重置" value="monthly" />
+                      <el-option label="每年重置" value="yearly" />
+                      <el-option label="永不重置" value="never" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="示例">
+                    <el-tag size="large" type="warning">{{ codeExample }}</el-tag>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" :loading="codeRuleLoading" @click="handleSaveCodeRule">保存</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </el-col>
+            
+            <!-- 入库单编号规则 -->
+            <el-col :span="8">
+              <div class="setting-section code-rule-card" v-loading="inboundCodeLoading">
+                <h3>入库单编号规则</h3>
+                <el-form label-width="100px">
+                  <el-form-item label="编号前缀">
+                    <el-input v-model="inboundCodeRule.prefix" placeholder="如：RK" />
+                  </el-form-item>
+                  <el-form-item label="日期格式">
+                    <el-select v-model="inboundCodeRule.dateFormat" style="width: 100%">
+                      <el-option label="年 (YYYY)" value="YYYY" />
+                      <el-option label="年月 (YYYYMM)" value="YYYYMM" />
+                      <el-option label="年月日 (YYYYMMDD)" value="YYYYMMDD" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="流水号位数">
+                    <el-input-number v-model="inboundCodeRule.serialLength" :min="3" :max="8" style="width: 100%" />
+                  </el-form-item>
+                  <el-form-item label="流水号重置">
+                    <el-select v-model="inboundCodeRule.resetCycle" style="width: 100%">
+                      <el-option label="每天重置" value="daily" />
+                      <el-option label="每月重置" value="monthly" />
+                      <el-option label="每年重置" value="yearly" />
+                      <el-option label="永不重置" value="never" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="示例">
+                    <el-tag size="large" type="success">{{ inboundCodeExample }}</el-tag>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" :loading="inboundCodeLoading" @click="handleSaveInboundCodeRule">保存</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </el-col>
+            
+            <!-- 领用单编号规则 -->
+            <el-col :span="8">
+              <div class="setting-section code-rule-card" v-loading="outboundCodeLoading">
+                <h3>领用单编号规则</h3>
+                <el-form label-width="100px">
+                  <el-form-item label="编号前缀">
+                    <el-input v-model="outboundCodeRule.prefix" placeholder="如：LY" />
+                  </el-form-item>
+                  <el-form-item label="日期格式">
+                    <el-select v-model="outboundCodeRule.dateFormat" style="width: 100%">
+                      <el-option label="年 (YYYY)" value="YYYY" />
+                      <el-option label="年月 (YYYYMM)" value="YYYYMM" />
+                      <el-option label="年月日 (YYYYMMDD)" value="YYYYMMDD" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="流水号位数">
+                    <el-input-number v-model="outboundCodeRule.serialLength" :min="3" :max="8" style="width: 100%" />
+                  </el-form-item>
+                  <el-form-item label="流水号重置">
+                    <el-select v-model="outboundCodeRule.resetCycle" style="width: 100%">
+                      <el-option label="每天重置" value="daily" />
+                      <el-option label="每月重置" value="monthly" />
+                      <el-option label="每年重置" value="yearly" />
+                      <el-option label="永不重置" value="never" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="示例">
+                    <el-tag size="large" type="info">{{ outboundCodeExample }}</el-tag>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" :loading="outboundCodeLoading" @click="handleSaveOutboundCodeRule">保存</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
+            </el-col>
+          </el-row>
         </el-tab-pane>
         
         <!-- 自定义字段 -->
@@ -333,6 +409,7 @@ import {
   getWarehouses 
 } from '@/api/supplies'
 import request from '@/api/request'
+import { extractListData, withAllItems, extractErrorMessage } from '@/utils/api-helpers'
 
 const activeTab = ref('category')
 
@@ -377,7 +454,7 @@ async function loadCategories() {
   categoryLoading.value = true
   try {
     const res = await getSupplyCategories()
-    const data = res.results || res || []
+    const data = extractListData(res)
     categoryTree.value = buildTree(Array.isArray(data) ? data : [])
   } catch (error) {
     console.error('加载分类失败:', error)
@@ -543,7 +620,7 @@ async function loadWarehouses() {
   warehouseLoading.value = true
   try {
     const res = await getWarehouses()
-    warehouseList.value = res.results || res || []
+    warehouseList.value = extractListData(res)
   } catch (error) {
     console.error('加载仓库失败:', error)
   } finally {
@@ -621,50 +698,146 @@ const codeRule = reactive({
   resetCycle: 'daily'
 })
 
-const codeExample = computed(() => {
+const inboundCodeLoading = ref(false)
+const inboundCodeRule = reactive({
+  prefix: 'RK',
+  dateFormat: 'YYYYMMDD',
+  serialLength: 4,
+  separator: '',
+  resetCycle: 'daily'
+})
+
+const outboundCodeLoading = ref(false)
+const outboundCodeRule = reactive({
+  prefix: 'LY',
+  dateFormat: 'YYYYMMDD',
+  serialLength: 4,
+  separator: '',
+  resetCycle: 'daily'
+})
+
+function generateExample(rule) {
   const date = new Date()
   let dateStr = ''
-  if (codeRule.dateFormat === 'YYYY') dateStr = date.getFullYear()
-  else if (codeRule.dateFormat === 'YYYYMM') dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`
+  if (rule.dateFormat === 'YYYY') dateStr = date.getFullYear()
+  else if (rule.dateFormat === 'YYYYMM') dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`
   else dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`
-  const serial = '1'.padStart(codeRule.serialLength, '0')
-  const sep = codeRule.separator || ''
-  return `${codeRule.prefix}${sep}${dateStr}${sep}${serial}`
-})
+  const serial = '1'.padStart(rule.serialLength, '0')
+  const sep = rule.separator || ''
+  return `${rule.prefix}${sep}${dateStr}${sep}${serial}`
+}
+
+const codeExample = computed(() => generateExample(codeRule))
+const inboundCodeExample = computed(() => generateExample(inboundCodeRule))
+const outboundCodeExample = computed(() => generateExample(outboundCodeRule))
 
 async function loadCodeRule() {
   codeRuleLoading.value = true
+  inboundCodeLoading.value = true
+  outboundCodeLoading.value = true
+  
   try {
-    const res = await request.get('/system/code-rules/supply_code/')
-    if (res) {
-      codeRule.prefix = res.prefix || 'BG'
-      codeRule.dateFormat = res.date_format || 'YYYYMMDD'
-      codeRule.serialLength = res.serial_length || 4
-      codeRule.separator = res.separator || ''
-      codeRule.resetCycle = res.reset_cycle || 'daily'
+    const companyId = JSON.parse(localStorage.getItem('currentCompany') || '{}')?.id
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/9146dd84-0cab-43d2-aa3e-85994a696378',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'settings/index.vue:loadCodeRule',message:'Loading code rules',data:{companyId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
+    // #endregion
+    
+    // Load all three code rules in parallel
+    const [supplyRes, inboundRes, outboundRes] = await Promise.allSettled([
+      request.get('/system/code-rules/supply_code/', { params: { company: companyId } }),
+      request.get('/system/code-rules/inbound_code/', { params: { company: companyId } }),
+      request.get('/system/code-rules/outbound_code/', { params: { company: companyId } })
+    ])
+    
+    if (supplyRes.status === 'fulfilled' && supplyRes.value) {
+      codeRule.prefix = supplyRes.value.prefix || 'BG'
+      codeRule.dateFormat = supplyRes.value.date_format || 'YYYYMMDD'
+      codeRule.serialLength = supplyRes.value.serial_length || 4
+      codeRule.separator = supplyRes.value.separator || ''
+      codeRule.resetCycle = supplyRes.value.reset_cycle || 'daily'
+    }
+    
+    if (inboundRes.status === 'fulfilled' && inboundRes.value) {
+      inboundCodeRule.prefix = inboundRes.value.prefix || 'RK'
+      inboundCodeRule.dateFormat = inboundRes.value.date_format || 'YYYYMMDD'
+      inboundCodeRule.serialLength = inboundRes.value.serial_length || 4
+      inboundCodeRule.separator = inboundRes.value.separator || ''
+      inboundCodeRule.resetCycle = inboundRes.value.reset_cycle || 'daily'
+    }
+    
+    if (outboundRes.status === 'fulfilled' && outboundRes.value) {
+      outboundCodeRule.prefix = outboundRes.value.prefix || 'LY'
+      outboundCodeRule.dateFormat = outboundRes.value.date_format || 'YYYYMMDD'
+      outboundCodeRule.serialLength = outboundRes.value.serial_length || 4
+      outboundCodeRule.separator = outboundRes.value.separator || ''
+      outboundCodeRule.resetCycle = outboundRes.value.reset_cycle || 'daily'
     }
   } catch (error) {
-    console.log('No code rule found, using defaults')
+    console.log('Error loading code rules:', error)
   } finally {
     codeRuleLoading.value = false
+    inboundCodeLoading.value = false
+    outboundCodeLoading.value = false
   }
 }
 
 async function handleSaveCodeRule() {
   codeRuleLoading.value = true
   try {
+    const companyId = JSON.parse(localStorage.getItem('currentCompany') || '{}')?.id
     await request.post('/system/code-rules/supply_code/', {
+      company: companyId,
       prefix: codeRule.prefix,
       date_format: codeRule.dateFormat,
       serial_length: codeRule.serialLength,
       separator: codeRule.separator,
       reset_cycle: codeRule.resetCycle
     })
-    ElMessage.success('编号规则保存成功')
+    ElMessage.success('用品编号规则保存成功')
   } catch (error) {
     ElMessage.error('保存失败: ' + (error.response?.data?.error || error.message))
   } finally {
     codeRuleLoading.value = false
+  }
+}
+
+async function handleSaveInboundCodeRule() {
+  inboundCodeLoading.value = true
+  try {
+    const companyId = JSON.parse(localStorage.getItem('currentCompany') || '{}')?.id
+    await request.post('/system/code-rules/inbound_code/', {
+      company: companyId,
+      prefix: inboundCodeRule.prefix,
+      date_format: inboundCodeRule.dateFormat,
+      serial_length: inboundCodeRule.serialLength,
+      separator: inboundCodeRule.separator,
+      reset_cycle: inboundCodeRule.resetCycle
+    })
+    ElMessage.success('入库单编号规则保存成功')
+  } catch (error) {
+    ElMessage.error('保存失败: ' + (error.response?.data?.error || error.message))
+  } finally {
+    inboundCodeLoading.value = false
+  }
+}
+
+async function handleSaveOutboundCodeRule() {
+  outboundCodeLoading.value = true
+  try {
+    const companyId = JSON.parse(localStorage.getItem('currentCompany') || '{}')?.id
+    await request.post('/system/code-rules/outbound_code/', {
+      company: companyId,
+      prefix: outboundCodeRule.prefix,
+      date_format: outboundCodeRule.dateFormat,
+      serial_length: outboundCodeRule.serialLength,
+      separator: outboundCodeRule.separator,
+      reset_cycle: outboundCodeRule.resetCycle
+    })
+    ElMessage.success('领用单编号规则保存成功')
+  } catch (error) {
+    ElMessage.error('保存失败: ' + (error.response?.data?.error || error.message))
+  } finally {
+    outboundCodeLoading.value = false
   }
 }
 
@@ -725,9 +898,9 @@ async function loadFields() {
   fieldLoading.value = true
   try {
     const res = await request.get('/system/form/fields/', {
-      params: { module: MODULE_NAME }
+      params: withAllItems({ module: MODULE_NAME })
     })
-    const apiFields = res.results || res || []
+    const apiFields = extractListData(res)
     // Combine system fields with custom fields from API
     fieldList.value = [...defaultSystemFields, ...apiFields.filter(f => !f.is_system)]
   } catch (error) {
@@ -945,6 +1118,13 @@ onMounted(() => {
     font-size: 12px;
     color: #909399;
     margin-left: 8px;
+  }
+  
+  .code-rule-card {
+    background: #fafafa;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #ebeef5;
   }
   
   .options-editor {

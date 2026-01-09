@@ -367,7 +367,8 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { Plus, Delete, Rank, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import request from '@/utils/request'
+import request from '@/api/request'
+import { extractListData, withAllItems, extractErrorMessage } from '@/utils/api-helpers'
 
 const activeTab = ref('category')
 
@@ -415,7 +416,7 @@ async function loadCategories() {
   try {
     const res = await request.get('/assets/categories/')
     // 处理分页响应
-    const data = res.data?.results || res.results || res.data || res || []
+    const data = extractListData(res)
     categoryTree.value = buildTree(Array.isArray(data) ? data : [])
   } catch (error) {
     console.error('加载分类失败:', error)
@@ -595,7 +596,7 @@ async function loadLocations() {
   try {
     const res = await request.get('/organizations/locations/')
     // 处理分页响应
-    const data = res.data?.results || res.results || res.data || res || []
+    const data = extractListData(res)
     locationTree.value = buildTree(Array.isArray(data) ? data : [])
   } catch (error) {
     console.error('加载位置失败:', error)
@@ -839,9 +840,10 @@ async function loadFields() {
   fieldLoading.value = true
   try {
     const res = await request.get('/system/form/fields/', {
-      params: { module: MODULE_NAME }
+      params: withAllItems({ module: MODULE_NAME })  // 使用统一工具获取全部数据
     })
-    fieldList.value = res.data?.results || res.results || res.data || res || []
+    fieldList.value = extractListData(res)  // 使用统一工具提取列表数据
+    console.log('Fields loaded:', fieldList.value.length, 'items')
   } catch (error) {
     console.error('加载字段列表失败:', error)
     fieldList.value = []
@@ -854,9 +856,9 @@ async function loadFields() {
 async function loadFieldGroups() {
   try {
     const res = await request.get('/system/form/groups/', {
-      params: { module: MODULE_NAME }
+      params: withAllItems({ module: MODULE_NAME })
     })
-    fieldGroups.value = res.data?.results || res.results || res.data || res || []
+    fieldGroups.value = extractListData(res)
   } catch (error) {
     console.error('加载字段分组失败:', error)
     fieldGroups.value = []
@@ -975,7 +977,9 @@ async function submitField() {
     loadFields()
   } catch (error) {
     console.error('保存字段失败:', error)
-    ElMessage.error('保存失败: ' + (error.response?.data?.detail || error.message))
+    // 使用统一工具提取错误信息
+    const errorMsg = extractErrorMessage(error.response?.data)
+    ElMessage.error(errorMsg)
   } finally {
     fieldSubmitting.value = false
   }
@@ -989,7 +993,8 @@ watch(activeTab, (tab) => {
     loadLocations()
   } else if (tab === 'code') {
     loadCodeRule()
-  } else if (tab === 'fields' && !fieldList.value.length) {
+  } else if (tab === 'fields') {
+    // 每次切换到字段标签都重新加载，确保显示最新数据
     loadFields()
     loadFieldGroups()
   }

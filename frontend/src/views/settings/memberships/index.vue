@@ -278,6 +278,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Plus, Check, Close } from '@element-plus/icons-vue'
 import request from '@/api/request'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 // State
 const loading = ref(false)
@@ -327,8 +328,9 @@ const loadMemberships = async () => {
       company: filterCompany.value || undefined
     }
     const res = await request.get('/auth/user-company-memberships/', { params })
-    memberships.value = res.results || res || []
-    total.value = res.count || memberships.value.length
+    memberships.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    total.value = pageInfo.total || memberships.value.length
   } catch (error) {
     console.error('Failed to load memberships:', error)
     ElMessage.error('加载用户公司关系失败')
@@ -340,7 +342,7 @@ const loadMemberships = async () => {
 const loadCompanies = async () => {
   try {
     const res = await request.get('/organizations/companies/')
-    companies.value = res.results || res || []
+    companies.value = extractListData(res)
   } catch (error) {
     console.error('Failed to load companies:', error)
   }
@@ -350,7 +352,7 @@ const loadRoles = async (companyId) => {
   try {
     const params = companyId ? { company: companyId } : {}
     const res = await request.get('/auth/roles/', { params })
-    roleOptions.value = res.results || res || []
+    roleOptions.value = extractListData(res)
   } catch (error) {
     console.error('Failed to load roles:', error)
   }
@@ -364,7 +366,7 @@ const searchUsers = async (query) => {
   userSearchLoading.value = true
   try {
     const res = await request.get('/auth/users/', { params: { search: query } })
-    userOptions.value = res.results || res || []
+    userOptions.value = extractListData(res)
   } catch (error) {
     console.error('Failed to search users:', error)
   } finally {

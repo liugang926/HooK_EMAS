@@ -157,6 +157,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { Plus, Refresh, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import request from '@/utils/request'
+import { extractListData } from '@/utils/api-helpers'
 
 const activeTab = ref('function')
 const currentRole = ref(null)
@@ -247,7 +248,7 @@ async function loadRoles() {
   loadingRoles.value = true
   try {
     const res = await request.get('/auth/roles/')
-    roleList.value = res.results || res || []
+    roleList.value = extractListData(res)
     
     // 如果没有角色，创建默认角色
     if (roleList.value.length === 0) {
@@ -280,7 +281,7 @@ async function createDefaultRoles() {
   
   // 重新加载
   const res = await request.get('/auth/roles/')
-  roleList.value = res.results || res || []
+  roleList.value = extractListData(res)
 }
 
 // 加载部门树
@@ -314,7 +315,7 @@ async function loadAvailableMembers() {
     const res = await request.get('/auth/users/', {
       params: { page_size: 9999 }
     })
-    const users = res.results || res || []
+    const users = extractListData(res)
     
     // 排除已经是该角色成员的用户
     const existingIds = new Set(roleMembers.value.map(m => m.id))

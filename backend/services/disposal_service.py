@@ -16,7 +16,7 @@ class DisposalService(BaseService):
     
     @classmethod
     @transaction.atomic
-    def create_disposal(cls, disposal_data: Dict, items_data: List[Dict], user) -> 'AssetDisposal':
+    def create_disposal(cls, disposal_data: Dict, items_data: List[Dict], user, company_id=None) -> 'AssetDisposal':
         """
         创建处置单并更新资产状态
         
@@ -24,13 +24,14 @@ class DisposalService(BaseService):
             disposal_data: 处置单主表数据
             items_data: 处置明细数据列表
             user: 操作用户
+            company_id: 公司ID (可选)
             
         Returns:
             创建的处置单对象
         """
         from apps.assets.models import Asset, AssetDisposal, AssetDisposalItem, AssetOperation
         
-        company = cls.get_user_company(user)
+        company = cls.get_user_company(user, company_id)
         disposal_no = cls.generate_order_no('CZ')
         
         # 创建处置单

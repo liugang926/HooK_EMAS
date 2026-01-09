@@ -91,7 +91,12 @@ class AssetViewSet(viewsets.ModelViewSet):
         'company', 'category', 'status', 'using_department',
         'using_user', 'location', 'manage_department', 'manager'
     ]
-    search_fields = ['asset_code', 'name', 'brand', 'model', 'serial_number']
+    search_fields = [
+        'asset_code', 'name', 'brand', 'model', 'serial_number',
+        'category__name', 'using_department__name', 'location__name',
+        'using_user__username', 'using_user__nickname',
+        'manage_department__name', 'manager__username', 'manager__nickname'
+    ]
     ordering_fields = ['asset_code', 'name', 'original_value', 'created_at']
     ordering = ['-created_at']
     
@@ -382,8 +387,24 @@ class AssetOperationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AssetOperationSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['asset', 'operation_type', 'operator']
-    search_fields = ['description', 'operation_no']
+    search_fields = [
+        'description', 'operation_no',
+        'asset__name', 'asset__asset_code',
+        'operator__username', 'operator__nickname'
+    ]
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # 优先使用前端传递的公司或当前会话公司
+        company_id = self.request.query_params.get('company') or getattr(self.request.user, 'current_company_id', None)
+        
+        if company_id:
+            queryset = queryset.filter(asset__company_id=company_id)
+        elif hasattr(self.request.user, 'company') and self.request.user.company:
+            queryset = queryset.filter(asset__company=self.request.user.company)
+            
+        return queryset
 
 
 class AssetReceiveViewSet(viewsets.ModelViewSet):
@@ -403,55 +424,39 @@ class AssetReceiveViewSet(viewsets.ModelViewSet):
                      'receive_department__name', 'items__asset__name', 'items__asset__asset_code']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        """创建领用单 - 委托给 ReceiveService"""
-        import uuid
-        from apps.organizations.models import Company
+    def create(self, request, *args, **kwargs):
+        """
+        创建领用单 - 委托给 ReceiveService
         
-        # 自动设置公司
-        company = None
-        if hasattr(self.request.user, 'company') and self.request.user.company:
-            company = self.request.user.company
-        else:
-            company = Company.objects.first()
+        遵循 .cursorrules: 业务逻辑封装在 Service 层
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        # 生成单号
-        receive_no = f"LY{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
-        receive = serializer.save(
-            created_by=self.request.user, 
-            receive_no=receive_no,
-            company=company,
-            status=AssetReceive.Status.COMPLETED  # 直接设置为已完成
-        )
+        # 提取数据
+        validated_data = serializer.validated_data
+        # 注意: items_data 是 write_only 字段，在 validated_data 中可能需要特殊处理
+        # 如果 serializer 定义了 items_data 为 write_only，它会在 validated_data 中
+        items_data = validated_data.pop('items_data', [])
         
-        # 更新所有领用资产的状态和使用人信息
-        for item in receive.items.all():
-            asset = item.asset
-            old_status = asset.get_status_display()
-            old_user = asset.using_user.display_name if asset.using_user else None
-            
-            # 更新资产状态
-            asset.status = Asset.Status.IN_USE
-            asset.using_user = receive.receive_user
-            asset.using_department = receive.receive_department
-            asset.save()
-            
-            # 记录变动
-            AssetOperation.objects.create(
-                asset=asset,
-                operation_type=AssetOperation.OperationType.RECEIVE,
-                operation_no=receive_no,
-                description=f'资产领用：{receive.receive_user.display_name if receive.receive_user else "未知"} 领用',
-                old_data={
-                    'status': old_status,
-                    'using_user': old_user,
-                },
-                new_data={
-                    'status': asset.get_status_display(),
-                    'using_user': asset.using_user.display_name if asset.using_user else None,
-                },
-                operator=self.request.user
+        # 获取公司ID
+        company_id = request.data.get('company') or getattr(request.user, 'current_company_id', None)
+        
+        try:
+            # 调用服务层
+            instance = ReceiveService.create_receive(
+                receive_data=validated_data,
+                items_data=items_data,
+                user=request.user,
+                company_id=company_id
             )
+        except Exception as e:
+            # 捕获服务层可能的异常
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 重新序列化返回结果
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(detail=True, methods=['post'])
     def return_assets(self, request, pk=None):
@@ -489,45 +494,36 @@ class AssetBorrowViewSet(viewsets.ModelViewSet):
                      'borrow_department__name', 'items__asset__name', 'items__asset__asset_code']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        """创建借用单 - 委托给 BorrowService"""
-        import uuid
-        from apps.organizations.models import Company
+    def create(self, request, *args, **kwargs):
+        """
+        创建借用单 - 委托给 BorrowService
         
-        # 自动设置公司
-        company = None
-        if hasattr(self.request.user, 'company') and self.request.user.company:
-            company = self.request.user.company
-        else:
-            company = Company.objects.first()
+        遵循 .cursorrules: 业务逻辑封装在 Service 层
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        borrow_no = f"JY{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
-        borrow = serializer.save(
-            created_by=self.request.user, 
-            borrow_no=borrow_no,
-            company=company,
-            status=AssetBorrow.Status.BORROWED
-        )
+        # 提取数据
+        validated_data = serializer.validated_data
+        items_data = validated_data.pop('items_data', [])
         
-        # 更新所有借用资产的状态
-        for item in borrow.items.all():
-            asset = item.asset
-            old_status = asset.get_status_display()
-            
-            # 更新资产状态为借用中
-            asset.status = Asset.Status.BORROWED
-            asset.save()
-            
-            # 记录借用操作
-            AssetOperation.objects.create(
-                asset=asset,
-                operation_type=AssetOperation.OperationType.BORROW,
-                operation_no=borrow_no,
-                description=f'资产借用：{borrow.borrower.display_name if borrow.borrower else "未知"} 借用',
-                old_data={'status': old_status},
-                new_data={'status': asset.get_status_display()},
-                operator=self.request.user
+        # 获取公司ID
+        company_id = request.data.get('company') or getattr(request.user, 'current_company_id', None)
+        
+        try:
+            # 调用服务层
+            instance = BorrowService.create_borrow(
+                borrow_data=validated_data,
+                items_data=items_data,
+                user=request.user,
+                company_id=company_id
             )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 重新序列化返回结果
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(detail=True, methods=['post'])
     def return_assets(self, request, pk=None):
@@ -595,77 +591,36 @@ class AssetTransferViewSet(viewsets.ModelViewSet):
                      'to_user__nickname', 'to_user__username', 'items__asset__name', 'items__asset__asset_code']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        """创建调拨单 - 委托给 TransferService"""
-        import uuid
-        from apps.organizations.models import Company
+    def create(self, request, *args, **kwargs):
+        """
+        创建调拨单 - 委托给 TransferService
         
-        company = None
-        if hasattr(self.request.user, 'company') and self.request.user.company:
-            company = self.request.user.company
-        else:
-            company = Company.objects.first()
+        遵循 .cursorrules: 业务逻辑封装在 Service 层
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        transfer_no = f"DB{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
-        transfer = serializer.save(
-            created_by=self.request.user, 
-            transfer_no=transfer_no,
-            company=company,
-            status=AssetTransfer.Status.COMPLETED
-        )
+        # 提取数据
+        validated_data = serializer.validated_data
+        items_data = validated_data.pop('items_data', [])
         
-        # 更新所有调拨资产的信息并记录变动
-        for item in transfer.items.all():
-            asset = item.asset
-            
-            # 记录原始数据
-            old_data = {
-                'using_user': asset.using_user.display_name if asset.using_user else None,
-                'using_department': asset.using_department.name if asset.using_department else None,
-                'location': asset.location.name if asset.location else None,
-            }
-            
-            # 构建变更描述
-            changes = []
-            
-            # 更新使用人（如果指定）
-            if transfer.to_user:
-                asset.using_user = transfer.to_user
-                changes.append(f'使用人变更为 {transfer.to_user.display_name}')
-            
-            # 更新部门（如果指定）
-            if transfer.to_department:
-                asset.using_department = transfer.to_department
-                changes.append(f'部门变更为 {transfer.to_department.name}')
-            
-            # 更新位置（如果指定）
-            if transfer.to_location:
-                asset.location = transfer.to_location
-                changes.append(f'位置变更为 {transfer.to_location.name}')
-            
-            asset.save()
-            
-            # 新数据
-            new_data = {
-                'using_user': asset.using_user.display_name if asset.using_user else None,
-                'using_department': asset.using_department.name if asset.using_department else None,
-                'location': asset.location.name if asset.location else None,
-            }
-            
-            # 记录调拨操作
-            description = f'资产调拨：{"; ".join(changes)}' if changes else '资产调拨'
-            if transfer.reason:
-                description += f'（原因：{transfer.reason}）'
-            
-            AssetOperation.objects.create(
-                asset=asset,
-                operation_type=AssetOperation.OperationType.TRANSFER,
-                operation_no=transfer_no,
-                description=description,
-                old_data=old_data,
-                new_data=new_data,
-                operator=self.request.user
+        # 获取公司ID
+        company_id = request.data.get('company') or getattr(request.user, 'current_company_id', None)
+        
+        try:
+            # 调用服务层
+            instance = TransferService.create_transfer(
+                transfer_data=validated_data,
+                items_data=items_data,
+                user=request.user,
+                company_id=company_id
             )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 重新序列化返回结果
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class AssetDisposalViewSet(viewsets.ModelViewSet):
@@ -684,44 +639,36 @@ class AssetDisposalViewSet(viewsets.ModelViewSet):
     search_fields = ['disposal_no', 'reason', 'items__asset__name', 'items__asset__asset_code']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        """创建处置单 - 委托给 DisposalService"""
-        import uuid
-        from apps.organizations.models import Company
+    def create(self, request, *args, **kwargs):
+        """
+        创建处置单 - 委托给 DisposalService
         
-        company = None
-        if hasattr(self.request.user, 'company') and self.request.user.company:
-            company = self.request.user.company
-        else:
-            company = Company.objects.first()
+        遵循 .cursorrules: 业务逻辑封装在 Service 层
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
         
-        disposal_no = f"CZ{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
-        disposal = serializer.save(
-            created_by=self.request.user, 
-            disposal_no=disposal_no,
-            company=company,
-            status=AssetDisposal.Status.COMPLETED
-        )
+        # 提取数据
+        validated_data = serializer.validated_data
+        items_data = validated_data.pop('items_data', [])
         
-        # 更新所有处置资产的状态并记录变动
-        for item in disposal.items.all():
-            asset = item.asset
-            old_status = asset.get_status_display()
-            
-            # 更新资产状态为已处置
-            asset.status = Asset.Status.DISPOSED
-            asset.save()
-            
-            # 记录处置操作
-            AssetOperation.objects.create(
-                asset=asset,
-                operation_type=AssetOperation.OperationType.DISPOSE,
-                operation_no=disposal_no,
-                description=f'资产处置：{disposal.get_disposal_method_display()} - {disposal.reason or "无说明"}',
-                old_data={'status': old_status},
-                new_data={'status': asset.get_status_display()},
-                operator=self.request.user
+        # 获取公司ID
+        company_id = request.data.get('company') or getattr(request.user, 'current_company_id', None)
+        
+        try:
+            # 调用服务层
+            instance = DisposalService.create_disposal(
+                disposal_data=validated_data,
+                items_data=items_data,
+                user=request.user,
+                company_id=company_id
             )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 重新序列化返回结果
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class AssetMaintenanceViewSet(viewsets.ModelViewSet):
@@ -738,29 +685,34 @@ class AssetMaintenanceViewSet(viewsets.ModelViewSet):
     search_fields = ['maintenance_no', 'description', 'asset__name', 'asset__asset_code']
     ordering = ['-created_at']
     
-    def perform_create(self, serializer):
-        """创建维保单 - 委托给 MaintenanceService"""
-        import uuid
-        maintenance_no = f"WB{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
-        maintenance = serializer.save(created_by=self.request.user, maintenance_no=maintenance_no)
+    def create(self, request, *args, **kwargs):
+        """
+        创建维保单 - 委托给 MaintenanceService
         
-        # 更新资产状态为维修中并记录变动
-        asset = maintenance.asset
-        if asset:
-            old_status = asset.get_status_display()
-            asset.status = Asset.Status.MAINTENANCE
-            asset.save()
-            
-            # 记录维保操作
-            AssetOperation.objects.create(
-                asset=asset,
-                operation_type=AssetOperation.OperationType.MAINTENANCE,
-                operation_no=maintenance_no,
-                description=f'资产维保：{maintenance.get_maintenance_type_display()} - {maintenance.description or "无说明"}',
-                old_data={'status': old_status},
-                new_data={'status': asset.get_status_display()},
-                operator=self.request.user
+        遵循 .cursorrules: 业务逻辑封装在 Service 层
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # 提取数据
+        validated_data = serializer.validated_data
+        
+        # 获取公司ID
+        company_id = request.data.get('company') or getattr(request.user, 'current_company_id', None)
+        
+        try:
+            # 调用服务层 (维保单通常没有Items列表，只有Asset)
+            instance = MaintenanceService.create_maintenance(
+                maintenance_data=validated_data,
+                user=request.user,
+                company_id=company_id
             )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 重新序列化返回结果
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):

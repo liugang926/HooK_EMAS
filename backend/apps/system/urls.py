@@ -8,7 +8,8 @@ from .form_views import (
     ModuleRegistryView,
     ModuleRegistryFieldsView,
     ModuleCodeRuleView,
-    ModuleFeatureView
+    ModuleFeatureView,
+    FormLayoutViewSet
 )
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ router.register('code-rules', views.CodeRuleViewSet)
 router.register('form/groups', FieldGroupViewSet, basename='field-group')
 router.register('form/fields', FieldDefinitionViewSet, basename='field-definition')
 router.register('form/modules', ModuleFormConfigViewSet, basename='module-form-config')
+router.register('form/layouts', FormLayoutViewSet, basename='form-layout')
 
 urlpatterns = [
     path('', include(router.urls)),

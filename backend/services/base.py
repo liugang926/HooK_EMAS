@@ -36,20 +36,47 @@ class BaseService:
         return f"{prefix}{timezone.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:8].upper()}"
     
     @staticmethod
-    def get_user_company(user):
+    def get_user_company(user, company_id=None):
         """
         获取用户所属公司
         
         Args:
             user: 用户对象
+            company_id: 显式指定的公司ID (可选)
             
         Returns:
-            公司对象，如果用户没有关联公司则返回第一个公司
+            公司对象，优先级: 
+            1. company_id (如果存在且有效)
+            2. user.current_company_id (当前会话公司)
+            3. user.company (用户归属公司)
+            4. Company.objects.first() (默认公司)
         """
         from apps.organizations.models import Company
         
+        # 1. 尝试使用显式指定的 company_id
+        if company_id:
+            try:
+                company = Company.objects.get(id=company_id)
+                if company:
+                    return company
+            except Company.DoesNotExist:
+                pass
+                
+        # 2. 尝试使用当前会话公司 (current_company_id)
+        current_company_id = getattr(user, 'current_company_id', None)
+        if current_company_id:
+            try:
+                company = Company.objects.get(id=current_company_id)
+                if company:
+                    return company
+            except Company.DoesNotExist:
+                pass
+        
+        # 3. 尝试使用用户归属公司
         if hasattr(user, 'company') and user.company:
             return user.company
+            
+        # 4. 默认返回第一个公司
         return Company.objects.first()
     
     @classmethod

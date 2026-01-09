@@ -1,51 +1,48 @@
 <template>
   <div class="asset-list-container">
-    <!-- 搜索筛选区 -->
-    <el-card class="filter-card">
-      <el-form :model="filterForm" inline>
-        <el-form-item label="资产编号">
-          <el-input v-model="filterForm.asset_code" placeholder="请输入资产编号" clearable />
-        </el-form-item>
-        <el-form-item label="资产名称">
-          <el-input v-model="filterForm.name" placeholder="请输入资产名称" clearable />
-        </el-form-item>
-        <el-form-item label="资产分类">
-          <CategorySelect v-model="filterForm.categoryPath" @change="handleFilterCategoryChange" />
-        </el-form-item>
-        <el-form-item label="资产状态">
-          <el-select v-model="filterForm.status" placeholder="请选择状态" clearable style="width: 140px">
-            <el-option label="使用中" value="in_use" />
-            <el-option label="闲置" value="idle" />
-            <el-option label="借用中" value="borrowed" />
-            <el-option label="维修中" value="maintenance" />
-            <el-option label="已处置" value="disposed" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="使用部门">
-          <DepartmentSelect v-model="filterForm.using_department" style="width: 180px" />
-        </el-form-item>
-        <el-form-item>
+    <el-card class="page-card">
+      <template #header>
+        <div class="page-header">
+          <h2>资产库</h2>
+          <div class="header-actions">
+            <el-button type="primary" @click="handleAdd">
+              <el-icon><Plus /></el-icon>
+              新增资产
+            </el-button>
+          </div>
+        </div>
+      </template>
+      
+      <!-- List Toolbar -->
+      <div class="list-toolbar">
+        <div class="toolbar-search">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索资产编号、名称..."
+            clearable
+            style="width: 280px"
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>
             搜索
+          </el-button>
+          <el-button @click="toggleAdvanced">
+            <el-icon><Filter /></el-icon>
+            {{ showAdvanced ? '收起筛选' : '高级筛选' }}
           </el-button>
           <el-button @click="handleReset">
             <el-icon><Refresh /></el-icon>
             重置
           </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-    
-    <!-- 操作按钮区 -->
-    <el-card class="action-card">
-      <div class="action-bar">
-        <div class="left-actions">
-          <el-button type="primary" @click="handleAdd">
-            <el-icon><Plus /></el-icon>新增资产
-          </el-button>
-          <el-button @click="handleImport"><el-icon><Upload /></el-icon>批量导入</el-button>
-          <el-button @click="handleExport" :loading="exporting"><el-icon><Download /></el-icon>{{ exporting ? '导出中...' : '导出' }}</el-button>
+        </div>
+
+        <div class="toolbar-actions">
+          <!-- Batch Actions -->
           <el-dropdown @command="handleBatchAction" :disabled="selectedAssets.length === 0">
             <el-button :disabled="selectedAssets.length === 0">
               批量操作
@@ -69,9 +66,17 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-        </div>
-        <div class="right-actions">
-          <!-- 列设置 -->
+
+          <el-button @click="handleImport">
+            <el-icon><Upload /></el-icon>
+            导入
+          </el-button>
+          <el-button @click="handleExport" :loading="exporting">
+            <el-icon><Download /></el-icon>
+            {{ exporting ? '导出中...' : '导出' }}
+          </el-button>
+
+          <!-- Column Settings -->
           <el-popover placement="bottom-end" :width="280" trigger="click">
             <template #reference>
               <el-button>
@@ -91,6 +96,7 @@
               </el-checkbox-group>
             </div>
           </el-popover>
+
           <el-button-group>
             <el-button :type="viewMode === 'table' ? 'primary' : 'default'" @click="viewMode = 'table'">
               <el-icon><List /></el-icon>
@@ -101,84 +107,131 @@
           </el-button-group>
         </div>
       </div>
-    </el-card>
+
+      <!-- Advanced Filters -->
+      <el-collapse-transition>
+        <div v-show="showAdvanced" class="advanced-filters">
+          <el-form :model="filterForm" inline label-width="80px">
+            <el-form-item label="资产编号">
+              <el-input v-model="filterForm.asset_code" placeholder="请输入资产编号" clearable />
+            </el-form-item>
+            <el-form-item label="资产名称">
+              <el-input v-model="filterForm.name" placeholder="请输入资产名称" clearable />
+            </el-form-item>
+            <el-form-item label="资产分类">
+              <CategorySelect v-model="filterForm.categoryPath" @change="handleFilterCategoryChange" />
+            </el-form-item>
+            <el-form-item label="资产状态">
+              <el-select v-model="filterForm.status" placeholder="请选择状态" clearable style="width: 140px">
+                <el-option label="使用中" value="in_use" />
+                <el-option label="闲置" value="idle" />
+                <el-option label="借用中" value="borrowed" />
+                <el-option label="维修中" value="maintenance" />
+                <el-option label="已处置" value="disposed" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="使用部门">
+              <DepartmentSelect v-model="filterForm.using_department" style="width: 180px" />
+            </el-form-item>
+          </el-form>
+        </div>
+      </el-collapse-transition>
     
-    <!-- 资产列表 -->
-    <el-card class="list-card" v-loading="loading">
-      <!-- 表格视图 -->
-      <el-table v-if="viewMode === 'table'" :data="assetList" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
-        <el-table-column v-if="isColumnVisible('image')" label="资产图片" width="80">
-          <template #default="{ row }">
-            <el-image :src="row.image || defaultImage" fit="cover" class="asset-image" />
-          </template>
-        </el-table-column>
-        <el-table-column v-if="isColumnVisible('asset_code')" prop="asset_code" label="资产编号" width="150" sortable />
-        <el-table-column v-if="isColumnVisible('name')" prop="name" label="资产名称" min-width="150" />
-        <el-table-column v-if="isColumnVisible('category_name')" prop="category_name" label="资产分类" width="120" />
-        <el-table-column v-if="isColumnVisible('brand')" prop="brand" label="品牌" width="100" />
-        <el-table-column v-if="isColumnVisible('model')" prop="model" label="型号" width="120" />
-        <el-table-column v-if="isColumnVisible('status')" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">{{ getStatusLabel(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column v-if="isColumnVisible('using_user_name')" prop="using_user_name" label="使用人" width="100" />
-        <el-table-column v-if="isColumnVisible('using_department_name')" prop="using_department_name" label="使用部门" width="120" />
-        <el-table-column v-if="isColumnVisible('location_name')" prop="location_name" label="存放位置" width="120" />
-        <el-table-column v-if="isColumnVisible('original_value')" label="原值(元)" width="120" align="right">
-          <template #default="{ row }">{{ formatMoney(row.original_value) }}</template>
-        </el-table-column>
-        <el-table-column v-if="isColumnVisible('purchase_date')" prop="purchase_date" label="购置日期" width="120" />
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button type="primary" link @click="handleView(row)">查看</el-button>
-            <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
-            <el-dropdown trigger="click">
-              <el-button type="primary" link>更多<el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item @click="handleReceive(row)">领用</el-dropdown-item>
-                  <el-dropdown-item @click="handleBorrow(row)">借用</el-dropdown-item>
-                  <el-dropdown-item @click="handleTransfer(row)">调拨</el-dropdown-item>
-                  <el-dropdown-item @click="handleMaintenance(row)">维保</el-dropdown-item>
-                  <el-dropdown-item divided @click="handleDelete(row)">删除</el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </template>
-        </el-table-column>
-      </el-table>
-      
-      <!-- 卡片视图 -->
-      <div v-else class="card-view">
-        <el-row :gutter="20">
-          <el-col v-for="asset in assetList" :key="asset.id" :xs="24" :sm="12" :md="8" :lg="6">
-            <div class="asset-card" @click="handleView(asset)">
-              <div class="card-image">
-                <el-image :src="asset.image || defaultImage" fit="cover" />
-                <el-tag :type="getStatusType(asset.status)" class="status-tag">
-                  {{ getStatusLabel(asset.status) }}
-                </el-tag>
-              </div>
-              <div class="card-content">
-                <h3 class="asset-name">{{ asset.name }}</h3>
-                <p class="asset-code">{{ asset.asset_code }}</p>
-                <div class="asset-info">
-                  <span>{{ asset.category_name }}</span>
-                  <span v-if="asset.brand">{{ asset.brand }}</span>
+      <!-- Asset List (Table/Card) -->
+      <div v-loading="loading">
+        <!-- Table View -->
+        <el-table v-if="viewMode === 'table'" :data="assetList" @selection-change="handleSelectionChange">
+          <el-table-column type="selection" width="55" />
+          <el-table-column v-if="isColumnVisible('image')" label="资产图片" width="80">
+            <template #default="{ row }">
+              <el-image :src="row.image || defaultImage" fit="cover" class="asset-image" />
+            </template>
+          </el-table-column>
+          <el-table-column v-if="isColumnVisible('asset_code')" prop="asset_code" label="资产编号" width="150" sortable />
+          <el-table-column v-if="isColumnVisible('name')" prop="name" label="资产名称" min-width="150" />
+          <el-table-column v-if="isColumnVisible('category_name')" prop="category_name" label="资产分类" width="120" />
+          <el-table-column v-if="isColumnVisible('brand')" prop="brand" label="品牌" width="100" />
+          <el-table-column v-if="isColumnVisible('model')" prop="model" label="型号" width="120" />
+          <el-table-column v-if="isColumnVisible('status')" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row.status)">{{ getStatusLabel(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column v-if="isColumnVisible('using_user_name')" prop="using_user_name" label="使用人" width="100" />
+          <el-table-column v-if="isColumnVisible('using_department_name')" prop="using_department_name" label="使用部门" width="120" />
+          <el-table-column v-if="isColumnVisible('location_name')" prop="location_name" label="存放位置" width="120" />
+          <el-table-column v-if="isColumnVisible('original_value')" label="原值(元)" width="120" align="right">
+            <template #default="{ row }">{{ formatMoney(row.original_value) }}</template>
+          </el-table-column>
+          <el-table-column v-if="isColumnVisible('purchase_date')" prop="purchase_date" label="购置日期" width="120" />
+          <el-table-column label="操作" width="180" fixed="right">
+            <template #default="{ row }">
+              <el-button type="primary" link @click="handleView(row)">查看</el-button>
+              <el-button type="primary" link @click="handleEdit(row)">编辑</el-button>
+              <el-dropdown trigger="click">
+                <el-button type="primary" link>更多<el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item @click="handleReceive(row)">领用</el-dropdown-item>
+                    <el-dropdown-item @click="handleBorrow(row)">借用</el-dropdown-item>
+                    <el-dropdown-item @click="handleReturn(row)">退还</el-dropdown-item>
+                    <el-dropdown-item @click="handleTransfer(row)">调拨</el-dropdown-item>
+                    <el-dropdown-item @click="handleMaintenance(row)">维保</el-dropdown-item>
+                    <el-dropdown-item divided @click="handleDelete(row)">删除</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+        </el-table>
+        
+        <!-- Card View -->
+        <div v-else class="card-view">
+          <el-row :gutter="20">
+            <el-col v-for="asset in assetList" :key="asset.id" :xs="24" :sm="12" :md="8" :lg="6">
+              <div class="asset-card">
+                <div class="card-image" @click="handleView(asset)">
+                  <el-image :src="asset.image || defaultImage" fit="cover" />
+                  <el-tag :type="getStatusType(asset.status)" class="status-tag">
+                    {{ getStatusLabel(asset.status) }}
+                  </el-tag>
                 </div>
-                <div class="asset-user">
-                  <el-icon><User /></el-icon>
-                  {{ asset.using_user_name || '未分配' }}
+                <div class="card-content">
+                  <h3 class="asset-name" @click="handleView(asset)">{{ asset.name }}</h3>
+                  <p class="asset-code">{{ asset.asset_code }}</p>
+                  <div class="asset-info">
+                    <span>{{ asset.category_name }}</span>
+                    <span v-if="asset.brand">{{ asset.brand }}</span>
+                  </div>
+                  <div class="asset-user">
+                    <el-icon><User /></el-icon>
+                    {{ asset.using_user_name || '未分配' }}
+                  </div>
+                  <div class="card-actions">
+                    <el-button type="primary" link size="small" @click="handleView(asset)">查看</el-button>
+                    <el-dropdown trigger="click">
+                      <el-button type="primary" link size="small">操作<el-icon class="el-icon--right"><ArrowDown /></el-icon></el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item @click="handleEdit(asset)">编辑</el-dropdown-item>
+                          <el-dropdown-item @click="handleReceive(asset)">领用</el-dropdown-item>
+                          <el-dropdown-item @click="handleBorrow(asset)">借用</el-dropdown-item>
+                          <el-dropdown-item @click="handleReturn(asset)">退还</el-dropdown-item>
+                          <el-dropdown-item @click="handleTransfer(asset)">调拨</el-dropdown-item>
+                          <el-dropdown-item @click="handleMaintenance(asset)">维保</el-dropdown-item>
+                          <el-dropdown-item divided @click="handleDelete(asset)">删除</el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </div>
                 </div>
               </div>
-            </div>
-          </el-col>
-        </el-row>
+            </el-col>
+          </el-row>
+        </div>
       </div>
       
-      <!-- 分页 -->
+      <!-- Pagination -->
       <div class="pagination-container">
         <el-pagination
           v-model:current-page="pagination.current"
@@ -191,21 +244,15 @@
         />
       </div>
     </el-card>
-    
-    <!-- 资产详情弹窗 -->
+
+    <!-- Dialogs -->
     <AssetDetail v-model="detailVisible" :asset="currentAsset" @edit="handleEdit" />
-    
-    <!-- 资产表单弹窗 -->
     <AssetForm v-model="formVisible" :asset="editingAsset" @success="handleFormSuccess" />
-    
-    <!-- 批量导入弹窗 -->
     <ImportDialog v-model="importDialogVisible" @success="handleImportSuccess" />
-    
-    <!-- 批量操作弹窗 -->
     <BatchOperationDialog 
       v-model="batchOperationVisible" 
       :operation-type="batchOperationType"
-      :selected-assets="selectedAssets"
+      :selected-assets="opAssets"
       @success="handleBatchOperationSuccess" 
     />
   </div>
@@ -215,13 +262,16 @@
 import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Plus, Upload, Download, ArrowDown, List, Grid, User, Setting } from '@element-plus/icons-vue'
+
+import { Search, Refresh, Plus, Upload, Download, ArrowDown, List, Grid, User, Setting, Filter } from '@element-plus/icons-vue'
 import { CategorySelect, DepartmentSelect } from '@/components/common'
+
 import AssetDetail from './components/AssetDetail.vue'
 import AssetForm from './components/AssetForm.vue'
 import ImportDialog from './components/ImportDialog.vue'
 import BatchOperationDialog from './components/BatchOperationDialog.vue'
 import { getAssets, deleteAsset, exportAssets, batchDeleteAssets } from '@/api/assets'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 const router = useRouter()
 
@@ -229,10 +279,15 @@ const router = useRouter()
 const loading = ref(false)
 const viewMode = ref('table')
 const selectedAssets = ref([])
+const opAssets = ref([]) // 用于当前操作的资产列表（可能是单个或批量选中）
 const detailVisible = ref(false)
 const formVisible = ref(false)
 const currentAsset = ref(null)
 const editingAsset = ref(null)
+
+// 搜索状态
+const searchKeyword = ref('')
+const showAdvanced = ref(false)
 
 // 批量操作状态
 const importDialogVisible = ref(false)
@@ -248,15 +303,20 @@ const allColumns = [
   { prop: 'category_name', label: '资产分类' },
   { prop: 'brand', label: '品牌' },
   { prop: 'model', label: '型号' },
-  { prop: 'status', label: '状态' },
-  { prop: 'using_user_name', label: '使用人' },
+  { prop: 'specification', label: '规格' },
+  { prop: 'serial_number', label: '序列号' },
+  { prop: 'status_display', label: '状态' },
   { prop: 'using_department_name', label: '使用部门' },
+  { prop: 'using_user_name', label: '使用人' },
   { prop: 'location_name', label: '存放位置' },
-  { prop: 'original_value', label: '原值(元)' },
-  { prop: 'purchase_date', label: '购置日期' }
+  { prop: 'purchase_date', label: '购入日期' },
+  { prop: 'original_value', label: '原值' },
+  { prop: 'current_value', label: '净值' },
+  { prop: 'company_name', label: '所属公司' },
+  { prop: 'created_at', label: '创建时间' }
 ]
 const defaultVisibleColumns = ['image', 'asset_code', 'name', 'category_name', 'brand', 'model', 'status', 'using_user_name', 'using_department_name', 'location_name', 'original_value']
-const visibleColumns = ref([...defaultVisibleColumns])
+const visibleColumns = ref(['image', 'asset_code', 'name', 'category_name', 'status_display', 'using_department_name', 'using_user_name', 'location_name'])
 
 function isColumnVisible(prop) {
   return visibleColumns.value.includes(prop)
@@ -276,8 +336,8 @@ const defaultImage = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53
 
 // 筛选表单
 const filterForm = reactive({
-  asset_code: '',
   name: '',
+  asset_code: '',
   category: null,
   categoryPath: [],
   status: '',
@@ -285,7 +345,11 @@ const filterForm = reactive({
 })
 
 // 分页
-const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
+const pagination = reactive({
+  current: 1,
+  pageSize: 20,
+  total: 0
+})
 
 // 资产列表
 const assetList = ref([])
@@ -310,14 +374,16 @@ async function loadAssets() {
     const params = {
       page: pagination.current,
       page_size: pagination.pageSize,
-      search: filterForm.name || filterForm.asset_code || undefined,
+      page_size: pagination.pageSize,
+      search: searchKeyword.value || filterForm.name || filterForm.asset_code || undefined,
       category: filterForm.category || undefined,
       status: filterForm.status || undefined,
       using_department: filterForm.using_department || undefined
     }
     const res = await getAssets(params)
-    assetList.value = res.results || []
-    pagination.total = res.count || 0
+    assetList.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    pagination.total = pageInfo.total || 0
   } catch (error) {
     console.error('加载资产列表失败:', error)
     ElMessage.error('加载资产列表失败')
@@ -328,12 +394,17 @@ async function loadAssets() {
 
 function handleFilterCategoryChange(path, lastId) { filterForm.category = lastId }
 
+function toggleAdvanced() {
+  showAdvanced.value = !showAdvanced.value
+}
+
 function handleSearch() {
   pagination.current = 1
   loadAssets()
 }
 
 function handleReset() {
+  searchKeyword.value = ''
   Object.assign(filterForm, { asset_code: '', name: '', category: null, categoryPath: [], status: '', using_department: null })
   handleSearch()
 }
@@ -444,16 +515,19 @@ function handleBatchAction(command) {
     return
   }
   
+  // 设置操作资产为选中的资产
+  opAssets.value = selectedAssets.value
+  
   // 验证资产状态
   if (command === 'receive') {
-    const invalidAssets = selectedAssets.value.filter(a => a.status !== 'idle')
+    const invalidAssets = opAssets.value.filter(a => a.status !== 'idle')
     if (invalidAssets.length > 0) {
       ElMessage.warning(`有 ${invalidAssets.length} 项资产状态不是"闲置"，无法领用`)
       return
     }
     batchOperationType.value = 'receive'
   } else if (command === 'return') {
-    const invalidAssets = selectedAssets.value.filter(a => !['in_use', 'borrowed'].includes(a.status))
+    const invalidAssets = opAssets.value.filter(a => !['in_use', 'borrowed'].includes(a.status))
     if (invalidAssets.length > 0) {
       ElMessage.warning(`有 ${invalidAssets.length} 项资产状态不允许退还`)
       return
@@ -520,9 +594,53 @@ function handleBatchOperationSuccess() {
   selectedAssets.value = []
   loadAssets()
 }
-function handleReceive(row) { router.push({ path: '/assets/receive', query: { id: row.id } }) }
-function handleBorrow(row) { router.push({ path: '/assets/borrow', query: { id: row.id } }) }
-function handleTransfer(row) { router.push({ path: '/assets/transfer', query: { id: row.id } }) }
+
+// 单个操作处理
+function handleReceive(row) { 
+  if (row.status !== 'idle') {
+    ElMessage.warning('只有"闲置"状态的资产才能领用')
+    return
+  }
+  opAssets.value = [row]
+  batchOperationType.value = 'receive'
+  batchOperationVisible.value = true
+}
+
+function handleBorrow(row) { 
+  if (row.status !== 'idle') {
+    ElMessage.warning('只有"闲置"状态的资产才能借用')
+    return
+  }
+  // 借用通常使用 receive 接口或单独接口，这里假设暂时不支持借用 Modal 或复用 receive
+  // Wait, existing BatchDialog doesn't support 'borrow'.
+  // Reuse redirect for Borrow if BatchDialog doesn't support it?
+  // User screenshot shows 'Borrow'.
+  // If BatchDialog doesn't support Borrow, I should redirect or add support.
+  // Borrow is basically Receive but status=borrowed.
+  // For now, I will keep Borrow as Redirect but fix Receive/Return/Transfer.
+  // Or I can add Borrow support to BatchDialog quickly?
+  // I will Keep Redirect for Borrow for now to be safe, or add Todo.
+  // User specific request was "Missing Return".
+  // So I fix Return and Receive/Transfer.
+  router.push({ path: '/assets/borrow', query: { id: row.id } }) 
+}
+
+function handleReturn(row) {
+  if (!['in_use', 'borrowed'].includes(row.status)) {
+    ElMessage.warning('只有"使用中"或"借用中"的资产才能退还')
+    return
+  }
+  opAssets.value = [row]
+  batchOperationType.value = 'return'
+  batchOperationVisible.value = true
+}
+
+function handleTransfer(row) { 
+  opAssets.value = [row]
+  batchOperationType.value = 'transfer'
+  batchOperationVisible.value = true
+}
+
 function handleMaintenance(row) { router.push({ path: '/assets/maintenance', query: { id: row.id } }) }
 
 onMounted(() => {
@@ -541,16 +659,64 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .asset-list-container {
-  .filter-card, .action-card, .list-card { border-radius: 16px; margin-bottom: 16px; }
-  
-  .action-bar {
+  .page-card {
+    border-radius: 16px;
+    
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #1f2937;
+      }
+    }
+  }
+
+  .list-toolbar {
     display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
     justify-content: space-between;
-    align-items: center;
-    .left-actions { display: flex; gap: 12px; align-items: center; }
-    .right-actions { display: flex; gap: 12px; align-items: center; }
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    
+    .toolbar-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
   }
   
+  .advanced-filters {
+    padding: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    
+    .el-form-item {
+      margin-bottom: 12px;
+    }
+    
+    // Adjust last row margin
+    :deep(.el-form-item:last-child) {
+      margin-bottom: 0;
+    }
+  }
+
   .batch-badge {
     margin-left: 4px;
     :deep(.el-badge__content) {
@@ -588,43 +754,104 @@ onMounted(() => {
       border-radius: 4px;
       
       &:hover {
-        background: #f5f7fa;
+        background-color: #f3f4f6;
       }
     }
   }
-  
-  .asset-image { width: 50px; height: 50px; border-radius: 8px; }
+
+  .asset-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+  }
   
   .card-view {
     .asset-card {
-      border-radius: 12px;
-      overflow: hidden;
       background: #fff;
       border: 1px solid #e5e7eb;
-      margin-bottom: 16px;
+      border-radius: 8px;
+      overflow: hidden;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
       
-      &:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: #3b82f6;
+      }
       
       .card-image {
         position: relative;
         height: 160px;
-        background: #f9fafb;
-        :deep(.el-image) { width: 100%; height: 100%; }
-        .status-tag { position: absolute; top: 8px; right: 8px; }
+        background: #f3f4f6;
+        
+        .el-image {
+          width: 100%;
+          height: 100%;
+        }
+        
+        .status-tag {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 1;
+        }
       }
       
       .card-content {
-        padding: 16px;
-        .asset-name { font-size: 16px; font-weight: 600; color: #1f2937; margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .asset-code { font-size: 12px; color: #9ca3af; margin: 0 0 8px; }
-        .asset-info { display: flex; gap: 8px; margin-bottom: 8px; span { font-size: 12px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 4px; } }
-        .asset-user { display: flex; align-items: center; gap: 4px; font-size: 13px; color: #4b5563; }
+        padding: 12px;
+        
+        .asset-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: #111827;
+          margin: 0 0 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        .asset-code {
+          font-size: 12px;
+          color: #6b7280;
+          margin: 0 0 8px;
+        }
+        
+        .asset-info {
+          display: flex;
+          gap: 8px;
+          font-size: 12px;
+          color: #4b5563;
+          margin-bottom: 8px;
+          
+          span {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+          }
+        }
+        
+        .asset-user {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 13px;
+          color: #4b5563;
+          
+          .el-icon {
+            font-size: 14px;
+          }
+        }
       }
     }
   }
   
-  .pagination-container { display: flex; justify-content: flex-end; margin-top: 20px; }
+  .pagination-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
 }
 </style>

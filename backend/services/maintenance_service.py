@@ -18,26 +18,29 @@ class MaintenanceService(BaseService):
     
     @classmethod
     @transaction.atomic
-    def create_maintenance(cls, maintenance_data: Dict, user) -> 'AssetMaintenance':
+    def create_maintenance(cls, maintenance_data: Dict, user, company_id=None) -> 'AssetMaintenance':
         """
         创建维保单并更新资产状态
         
         Args:
             maintenance_data: 维保单数据
             user: 操作用户
+            company_id: 公司ID (可选)
             
         Returns:
             创建的维保单对象
         """
         from apps.assets.models import AssetMaintenance, AssetOperation
         
+        company = cls.get_user_company(user, company_id)
         maintenance_no = cls.generate_order_no('WB')
         
         # 创建维保单
         maintenance = AssetMaintenance.objects.create(
             **maintenance_data,
             created_by=user,
-            maintenance_no=maintenance_no
+            maintenance_no=maintenance_no,
+            company=company
         )
         
         # 更新资产状态

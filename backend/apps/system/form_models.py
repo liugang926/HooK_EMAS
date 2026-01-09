@@ -54,6 +54,8 @@ class FieldDefinition(models.Model):
         FILE = 'file', '文件上传'
         RICH_TEXT = 'rich_text', '富文本'
         CODE = 'code', '代码/编号'  # 自动生成的编号
+        FORMULA = 'formula', '公式计算'
+        EXPRESSION = 'expression', '条件表达式'
     
     # 基本信息
     module = models.CharField(
@@ -134,6 +136,19 @@ class FieldDefinition(models.Model):
         default=dict,
         blank=True,
         help_text='格式：{"prefix": "ZC", "dateFormat": "YYYYMMDD", "length": 8}'
+    )
+    
+    # 公式配置（用于 formula/expression 类型）
+    formula_config = models.JSONField(
+        '公式配置',
+        default=dict,
+        blank=True,
+        help_text='''格式：{
+            "expression": "price * quantity",
+            "depends_on": ["price", "quantity"],
+            "precision": 2,
+            "format": "currency"
+        }'''
     )
     
     # 默认值
@@ -230,6 +245,10 @@ class FieldDefinition(models.Model):
         
         if self.field_type == 'code':
             config['codeConfig'] = self.code_config
+        
+        if self.field_type in ['formula', 'expression']:
+            config['formulaConfig'] = self.formula_config
+            config['readonly'] = True  # 公式字段始终只读
         
         if self.extra_config:
             config['extra'] = self.extra_config
@@ -366,3 +385,135 @@ class ModuleFormConfig(models.Model):
             'ungroupedFields': ungrouped_fields,
             'extra': self.extra_config,
         }
+
+
+class FormLayout(models.Model):
+    """表单布局配置 - 存储可视化设计器生成的布局"""
+    
+    class LayoutType(models.TextChoices):
+        FORM = 'form', '表单布局'
+        DETAIL = 'detail', '详情布局'
+        LIST = 'list', '列表布局'
+    
+    module = models.CharField(
+        '模块名称',
+        max_length=50,
+        db_index=True,
+        help_text='如：asset, consumable, asset_receive'
+    )
+    layout_type = models.CharField(
+        '布局类型',
+        max_length=20,
+        choices=LayoutType.choices,
+        default=LayoutType.FORM
+    )
+    layout_name = models.CharField(
+        '布局名称',
+        max_length=100,
+        blank=True,
+        help_text='用于区分同一模块的多种布局（如移动端/PC端）'
+    )
+    
+    # 布局配置 JSON
+    layout_config = models.JSONField(
+        '布局配置',
+        default=dict,
+        help_text='''JSON 结构示例：
+        {
+            "rows": [
+                {
+                    "id": "row_1",
+                    "cols": [
+                        {"span": 12, "field": "asset_code"},
+                        {"span": 12, "field": "name"}
+                    ]
+                },
+                {
+                    "id": "row_2",
+                    "cols": [
+                        {"span": 24, "field": "description"}
+                    ]
+                }
+            ],
+            "groups": [
+                {
+                    "id": "group_finance",
+                    "title": "财务信息",
+                    "collapsed": false,
+                    "rows": [...]
+                }
+            ]
+        }'''
+    )
+    
+    # 公司隔离：null 表示全局默认布局
+    company = models.ForeignKey(
+        'organizations.Company',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='form_layouts',
+        verbose_name='所属公司',
+        help_text='为空表示全局默认布局'
+    )
+    
+    is_default = models.BooleanField(
+        '默认布局',
+        default=False,
+        help_text='同类型下只有一个默认布局'
+    )
+    is_active = models.BooleanField('是否启用', default=True)
+    
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_form_layouts',
+        verbose_name='创建人'
+    )
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+    
+    class Meta:
+        verbose_name = '表单布局'
+        verbose_name_plural = verbose_name
+        unique_together = ['module', 'layout_type', 'company', 'layout_name']
+        ordering = ['module', 'layout_type', '-is_default']
+    
+    def __str__(self):
+        company_name = self.company.name if self.company else '全局'
+        return f"{self.module} - {self.get_layout_type_display()} ({company_name})"
+    
+    @classmethod
+    def get_layout_for_module(cls, module, layout_type='form', company=None):
+        """
+        获取模块的布局配置
+        优先级: 公司级 > 全局级 > 默认空布局
+        """
+        # 1. 尝试获取公司级布局
+        if company:
+            layout = cls.objects.filter(
+                module=module,
+                layout_type=layout_type,
+                company=company,
+                is_active=True
+            ).first()
+            if layout:
+                return layout.layout_config
+        
+        # 2. 获取全局默认布局
+        layout = cls.objects.filter(
+            module=module,
+            layout_type=layout_type,
+            company__isnull=True,
+            is_active=True,
+            is_default=True
+        ).first()
+        
+        if layout:
+            return layout.layout_config
+        
+        # 3. 返回空布局
+        return {'rows': [], 'groups': []}
+

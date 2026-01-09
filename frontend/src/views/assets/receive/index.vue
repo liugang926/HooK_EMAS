@@ -294,8 +294,27 @@
       </template>
     </el-dialog>
     
+    <!-- 退还详情对话框 -->
+    <el-dialog v-model="returnDetailVisible" title="退还详情" width="600px">
+      <el-descriptions :column="1" border v-if="currentReturnRecord">
+        <el-descriptions-item label="退还单号">{{ currentReturnRecord.return_no }}</el-descriptions-item>
+        <el-descriptions-item label="资产名称">{{ currentReturnRecord.asset_name }}</el-descriptions-item>
+        <el-descriptions-item label="资产编号">{{ currentReturnRecord.asset_code }}</el-descriptions-item>
+        <el-descriptions-item label="退还人">{{ currentReturnRecord.return_user_name }}</el-descriptions-item>
+        <el-descriptions-item label="退还日期">{{ currentReturnRecord.return_date }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getReturnStatusType(currentReturnRecord.status)">{{ getReturnStatusLabel(currentReturnRecord.status) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="退还原因">{{ currentReturnRecord.reason || '-' }}</el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="returnDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 退还对话框 -->
     <el-dialog v-model="returnDialogVisible" title="资产退还" width="600px">
+
       <el-form ref="returnFormRef" :model="returnForm" :rules="returnRules" label-width="100px">
         <el-form-item label="退还资产">
           <el-select
@@ -651,8 +670,14 @@ function handleView(row) {
   viewDialogVisible.value = true
 }
 
+const returnDetailVisible = ref(false)
+const currentReturnRecord = ref(null)
+
+// ...
+
 function handleViewReturn(row) {
-  ElMessage.info(`退还单号：${row.return_no}`)
+  currentReturnRecord.value = row
+  returnDetailVisible.value = true
 }
 
 function handleReturn(row) {

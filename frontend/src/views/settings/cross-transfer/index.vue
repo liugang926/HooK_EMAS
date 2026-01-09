@@ -459,6 +459,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, Clock, Loading, Check, Coin } from '@element-plus/icons-vue'
 import request from '@/api/request'
 import { useAppStore } from '@/stores/app'
+import { extractListData, extractPaginationInfo } from '@/utils/api-helpers'
 
 const appStore = useAppStore()
 
@@ -527,8 +528,9 @@ const loadTransfers = async () => {
       transfer_date_before: dateRange.value?.[1] || undefined
     }
     const res = await request.get('/organizations/cross-transfers/', { params })
-    transfers.value = res.results || res || []
-    total.value = res.count || transfers.value.length
+    transfers.value = extractListData(res)
+    const pageInfo = extractPaginationInfo(res)
+    total.value = pageInfo.total || transfers.value.length
     
     // Update stats
     updateStats()
@@ -551,7 +553,7 @@ const updateStats = () => {
 const loadCompanies = async () => {
   try {
     const res = await request.get('/organizations/companies/')
-    companies.value = res.results || res || []
+    companies.value = extractListData(res)
   } catch (error) {
     console.error('Failed to load companies:', error)
   }
@@ -625,7 +627,7 @@ const loadAvailableAssets = async () => {
       search: assetSearchQuery.value || undefined
     }
     const res = await request.get('/assets/assets/', { params })
-    availableAssets.value = res.results || res || []
+    availableAssets.value = extractListData(res)
   } catch (error) {
     console.error('Failed to load assets:', error)
   } finally {

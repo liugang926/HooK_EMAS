@@ -3,7 +3,7 @@
 """
 
 from rest_framework import serializers
-from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig
+from .form_models import FieldGroup, FieldDefinition, ModuleFormConfig, FormLayout
 
 
 class FieldGroupSerializer(serializers.ModelSerializer):
@@ -121,3 +121,43 @@ class BulkFieldUpdateSerializer(serializers.Serializer):
             if 'field_key' not in field_data:
                 raise serializers.ValidationError('每个字段必须包含 field_key')
         return value
+
+
+class FormLayoutSerializer(serializers.ModelSerializer):
+    """表单布局序列化器"""
+    
+    company_name = serializers.CharField(source='company.name', read_only=True, default='全局')
+    created_by_name = serializers.CharField(source='created_by.display_name', read_only=True, default='')
+    
+    class Meta:
+        model = FormLayout
+        fields = [
+            'id', 'module', 'layout_type', 'layout_name', 'layout_config',
+            'company', 'company_name', 'is_default', 'is_active',
+            'created_by', 'created_by_name', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'created_by']
+
+
+class FormLayoutCreateSerializer(serializers.ModelSerializer):
+    """表单布局创建序列化器"""
+    
+    class Meta:
+        model = FormLayout
+        fields = [
+            'module', 'layout_type', 'layout_name', 'layout_config',
+            'company', 'is_default', 'is_active'
+        ]
+    
+    def create(self, validated_data):
+        # 如果设置为默认布局，先取消同类型其他默认布局
+        if validated_data.get('is_default'):
+            FormLayout.objects.filter(
+                module=validated_data['module'],
+                layout_type=validated_data['layout_type'],
+                company=validated_data.get('company'),
+                is_default=True
+            ).update(is_default=False)
+        
+        return super().create(validated_data)
+

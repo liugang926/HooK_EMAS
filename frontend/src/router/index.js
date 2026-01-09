@@ -279,6 +279,12 @@ const routes = [
             name: 'SystemConfig',
             component: () => import('@/views/settings/system/index.vue'),
             meta: { title: '系统配置' }
+          },
+          {
+            path: 'form-designer',
+            name: 'FormDesigner',
+            component: () => import('@/views/settings/form-designer/index.vue'),
+            meta: { title: '表单设计器' }
           }
         ]
       }
@@ -299,10 +305,10 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   NProgress.start()
-  
+
   const token = localStorage.getItem('access_token')
   const requiresAuth = to.meta.requiresAuth !== false
-  
+
   if (requiresAuth && !token) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else if (to.name === 'Login' && token) {

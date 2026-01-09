@@ -16,7 +16,7 @@ class TransferService(BaseService):
     
     @classmethod
     @transaction.atomic
-    def create_transfer(cls, transfer_data: Dict, items_data: List[Dict], user) -> 'AssetTransfer':
+    def create_transfer(cls, transfer_data: Dict, items_data: List[Dict], user, company_id=None) -> 'AssetTransfer':
         """
         创建调拨单并更新资产信息
         
@@ -24,13 +24,14 @@ class TransferService(BaseService):
             transfer_data: 调拨单主表数据
             items_data: 调拨明细数据列表
             user: 操作用户
+            company_id: 公司ID (可选)
             
         Returns:
             创建的调拨单对象
         """
         from apps.assets.models import Asset, AssetTransfer, AssetTransferItem, AssetOperation
         
-        company = cls.get_user_company(user)
+        company = cls.get_user_company(user, company_id)
         transfer_no = cls.generate_order_no('DB')
         
         # 创建调拨单

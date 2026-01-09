@@ -17,7 +17,7 @@ class ReceiveService(BaseService):
     
     @classmethod
     @transaction.atomic
-    def create_receive(cls, receive_data: Dict, items_data: List[Dict], user) -> 'AssetReceive':
+    def create_receive(cls, receive_data: Dict, items_data: List[Dict], user, company_id=None) -> 'AssetReceive':
         """
         创建领用单并更新资产状态
         
@@ -27,6 +27,7 @@ class ReceiveService(BaseService):
             receive_data: 领用单主表数据
             items_data: 领用明细数据列表
             user: 操作用户
+            company_id: 公司ID (可选)
             
         Returns:
             创建的领用单对象
@@ -34,7 +35,7 @@ class ReceiveService(BaseService):
         from apps.assets.models import Asset, AssetReceive, AssetReceiveItem, AssetOperation
         
         # 获取公司
-        company = cls.get_user_company(user)
+        company = cls.get_user_company(user, company_id)
         
         # 生成单号
         receive_no = cls.generate_order_no('LY')

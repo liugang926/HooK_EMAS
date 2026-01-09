@@ -21,7 +21,7 @@ class BorrowService(BaseService):
     
     @classmethod
     @transaction.atomic
-    def create_borrow(cls, borrow_data: Dict, items_data: List[Dict], user) -> 'AssetBorrow':
+    def create_borrow(cls, borrow_data: Dict, items_data: List[Dict], user, company_id=None) -> 'AssetBorrow':
         """
         创建借用单并更新资产状态
         
@@ -29,13 +29,14 @@ class BorrowService(BaseService):
             borrow_data: 借用单主表数据
             items_data: 借用明细数据列表
             user: 操作用户
+            company_id: 公司ID (可选)
             
         Returns:
             创建的借用单对象
         """
         from apps.assets.models import Asset, AssetBorrow, AssetBorrowItem, AssetOperation
         
-        company = cls.get_user_company(user)
+        company = cls.get_user_company(user, company_id)
         borrow_no = cls.generate_order_no('JY')
         
         # 创建借用单
