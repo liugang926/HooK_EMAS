@@ -1,8 +1,19 @@
 """
-动态表单配置视图
+Dynamic Form Configuration Views
+
+This module provides API endpoints for:
+- Field groups management
+- Field definitions management
+- Module form configurations
+- Module registry access (centralized config)
+
+Following .cursorrules:
+- Service Layer pattern for business logic
+- Consistent API responses
 """
 
 from rest_framework import viewsets, status
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -16,6 +27,14 @@ from .form_serializers import (
     FieldDefinitionCreateSerializer,
     ModuleFormConfigSerializer,
     BulkFieldUpdateSerializer
+)
+from .module_registry import (
+    MODULE_REGISTRY,
+    get_module_config,
+    get_all_modules,
+    get_module_system_fields,
+    get_modules_with_feature,
+    get_module_code_rule_config
 )
 
 
@@ -256,3 +275,212 @@ class ModuleFormConfigViewSet(viewsets.ModelViewSet):
             'module', 'module_label', 'api_base'
         )
         return Response(list(modules))
+
+
+# =============================================================================
+# Module Registry API Views
+# =============================================================================
+
+class ModuleRegistryView(APIView):
+    """
+    Module Registry API - Serves centralized module configurations
+    
+    This provides direct access to MODULE_REGISTRY without database queries,
+    useful for initial configuration and frontend schema generation.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get all modules or a specific module configuration
+        
+        Query params:
+            module: (optional) specific module name to retrieve
+            include_fields: (optional) whether to include system fields (default: true)
+        
+        Returns:
+            - Single module config if 'module' param provided
+            - List of all modules otherwise
+        """
+        module_name = request.query_params.get('module')
+        include_fields = request.query_params.get('include_fields', 'true').lower() == 'true'
+        
+        if module_name:
+            config = get_module_config(module_name)
+            if not config:
+                return Response(
+                    {'error': f'Module "{module_name}" not found'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            result = self._format_module_config(module_name, config, include_fields)
+            return Response(result)
+        
+        # Return all modules
+        modules = []
+        for name, config in MODULE_REGISTRY.items():
+            modules.append(self._format_module_config(name, config, include_fields))
+        
+        return Response(modules)
+    
+    def _format_module_config(self, name, config, include_fields=True):
+        """Format module config for API response"""
+        result = {
+            'name': name,
+            'label': config.get('label'),
+            'label_en': config.get('label_en'),
+            'api_base': config.get('api_base'),
+            'icon': config.get('icon'),
+            'code_rule': config.get('code_rule'),
+            'features': config.get('features'),
+        }
+        
+        if include_fields:
+            # Convert system fields to serializable format
+            system_fields = config.get('system_fields', [])
+            result['system_fields'] = [
+                self._format_field(field) for field in system_fields
+            ]
+        
+        return result
+    
+    def _format_field(self, field):
+        """Format field config, converting enums to strings"""
+        formatted = {}
+        for key, value in field.items():
+            if hasattr(value, 'value'):
+                # Convert enum to string
+                formatted[key] = value.value
+            else:
+                formatted[key] = value
+        return formatted
+
+
+class ModuleRegistryFieldsView(APIView):
+    """
+    Module Fields API - Get system fields for a module
+    
+    Provides field configurations for frontend form rendering.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, module_name):
+        """
+        Get system fields for a specific module
+        
+        Path params:
+            module_name: The module identifier
+            
+        Query params:
+            mode: 'create' or 'edit' - affects readonly/hidden fields
+        
+        Returns:
+            List of field configurations
+        """
+        fields = get_module_system_fields(module_name)
+        
+        if not fields:
+            return Response(
+                {'error': f'Module "{module_name}" not found or has no fields'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        mode = request.query_params.get('mode', 'create')
+        
+        # Format fields for response
+        formatted_fields = []
+        for field in fields:
+            field_config = self._format_field_for_form(field, mode)
+            formatted_fields.append(field_config)
+        
+        return Response(formatted_fields)
+    
+    def _format_field_for_form(self, field, mode='create'):
+        """Format field config for form rendering"""
+        field_type = field.get('field_type')
+        if hasattr(field_type, 'value'):
+            field_type = field_type.value
+        
+        # Determine readonly based on mode
+        is_readonly = field.get('is_readonly', False)
+        if mode == 'edit' and field.get('is_readonly_on_edit', False):
+            is_readonly = True
+        
+        config = {
+            'key': field.get('field_key'),
+            'label': field.get('field_name'),
+            'type': field_type,
+            'required': field.get('is_required', False),
+            'readonly': is_readonly,
+            'width': field.get('width', 8),
+            'sortOrder': field.get('sort_order', 0),
+            'showInList': field.get('show_in_list', False),
+            'listSortable': field.get('list_sortable', False),
+            'listSearchable': field.get('list_searchable', False),
+        }
+        
+        # Add type-specific configurations
+        if 'options' in field:
+            config['options'] = field['options']
+        
+        if 'default_value' in field:
+            config['defaultValue'] = field['default_value']
+        
+        if 'reference_config' in field:
+            config['referenceConfig'] = field['reference_config']
+        
+        if 'number_config' in field:
+            config['numberConfig'] = field['number_config']
+        
+        return config
+
+
+class ModuleCodeRuleView(APIView):
+    """
+    Module Code Rule API - Get code generation rules for a module
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, module_name):
+        """Get code rule configuration for a module"""
+        code_rule = get_module_code_rule_config(module_name)
+        
+        if not code_rule:
+            return Response(
+                {'error': f'Module "{module_name}" has no code rule configured'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        return Response(code_rule)
+
+
+class ModuleFeatureView(APIView):
+    """
+    Module Features API - Query modules by feature
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get modules that have a specific feature enabled
+        
+        Query params:
+            feature: Feature name (e.g., 'custom_fields', 'workflow', 'batch_operations')
+        
+        Returns:
+            List of module names with the feature enabled
+        """
+        feature = request.query_params.get('feature')
+        
+        if not feature:
+            return Response(
+                {'error': 'Please provide "feature" parameter'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        modules = get_modules_with_feature(feature)
+        
+        return Response({
+            'feature': feature,
+            'modules': modules
+        })

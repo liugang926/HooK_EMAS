@@ -39,6 +39,9 @@ class BaseModel(models.Model):
     - 实现软删除逻辑
     
     所有业务模型都应继承此类
+    
+    动态表单支持:
+    - custom_fields: JSONField 存储自定义字段值
     """
     
     created_at = models.DateTimeField(
@@ -67,6 +70,16 @@ class BaseModel(models.Model):
         blank=True,
         related_name='%(class)s_created',
         verbose_name='创建人'
+    )
+    
+    # Dynamic form custom fields storage
+    # Stores values for user-defined custom fields as JSON
+    # Format: {"field_key": value, "another_field": value}
+    custom_fields = models.JSONField(
+        '自定义字段',
+        default=dict,
+        blank=True,
+        help_text='存储动态表单系统中的自定义字段值'
     )
     
     # 使用软删除管理器
@@ -102,6 +115,67 @@ class BaseModel(models.Model):
         警告: 仅应在数据清理或维护时使用
         """
         super().delete()
+    
+    # =====================================================
+    # Custom Fields Methods (Dynamic Form Support)
+    # =====================================================
+    
+    def get_custom_field(self, field_key, default=None):
+        """
+        Get a custom field value.
+        
+        Args:
+            field_key: The field key to retrieve
+            default: Default value if field not found
+            
+        Returns:
+            The field value or default
+        """
+        if not self.custom_fields:
+            return default
+        return self.custom_fields.get(field_key, default)
+    
+    def set_custom_field(self, field_key, value):
+        """
+        Set a custom field value.
+        
+        Args:
+            field_key: The field key to set
+            value: The value to store
+        """
+        if self.custom_fields is None:
+            self.custom_fields = {}
+        self.custom_fields[field_key] = value
+    
+    def set_custom_fields(self, fields_dict):
+        """
+        Set multiple custom field values at once.
+        
+        Args:
+            fields_dict: Dictionary of field_key: value pairs
+        """
+        if self.custom_fields is None:
+            self.custom_fields = {}
+        self.custom_fields.update(fields_dict)
+    
+    def remove_custom_field(self, field_key):
+        """
+        Remove a custom field.
+        
+        Args:
+            field_key: The field key to remove
+        """
+        if self.custom_fields and field_key in self.custom_fields:
+            del self.custom_fields[field_key]
+    
+    def get_all_custom_fields(self):
+        """
+        Get all custom fields.
+        
+        Returns:
+            dict: All custom field values
+        """
+        return self.custom_fields or {}
 
 
 class TimeStampedModel(models.Model):
