@@ -878,3 +878,103 @@ def get_modules_with_code_rules():
         key for key, config in MODULE_REGISTRY.items()
         if config.get('code_rule_type')
     ]
+
+
+def get_module_system_fields(module_name):
+    """
+    Get system fields for a specific module.
+    
+    Args:
+        module_name: The module identifier
+        
+    Returns:
+        list: List of system field configurations
+    """
+    config = get_module_config(module_name)
+    if config:
+        return config.get('system_fields', [])
+    return []
+
+
+def get_modules_with_feature(feature):
+    """
+    Get all modules that have a specific feature enabled.
+    
+    Args:
+        feature: Feature name (e.g., 'custom_fields', 'workflow')
+        
+    Returns:
+        list: List of module names with the feature enabled
+    """
+    return [
+        name
+        for name, config in MODULE_REGISTRY.items()
+        if config.get('features', {}).get(feature, False)
+    ]
+
+
+def get_module_code_rule_config(module_name):
+    """
+    Get code rule configuration for a specific module.
+    
+    Args:
+        module_name: The module identifier
+        
+    Returns:
+        dict: Code rule configuration or None
+    """
+    config = get_module_config(module_name)
+    if config:
+        return config.get('code_rule')
+    return None
+
+
+def get_module_system_fields(module_name):
+    """
+    Get system fields for a specific module.
+    
+    Args:
+        module_name: Module identifier
+        
+    Returns:
+        list: System field definitions or empty list
+    """
+    config = get_module_config(module_name)
+    if config:
+        return config.get('system_fields', [])
+    return []
+
+
+def get_modules_with_feature(feature_name):
+    """
+    Get modules that have a specific feature enabled.
+    
+    Args:
+        feature_name: Feature to check (e.g., 'enable_custom_fields', 'workflow', 'tree_mode')
+        
+    Returns:
+        list: List of module names with the feature enabled
+    """
+    return [
+        key for key, config in MODULE_REGISTRY.items()
+        if config.get(feature_name, False)
+    ]
+
+
+def get_module_code_rule_config(module_name):
+    """
+    Get code rule configuration for a module.
+    
+    Args:
+        module_name: Module identifier
+        
+    Returns:
+        dict: Code rule config or None if not configured
+    """
+    config = get_module_config(module_name)
+    if config and config.get('code_rule_type'):
+        return {
+            'code_rule_type': config.get('code_rule_type'),
+            'code_rule_prefix': config.get('code_rule_prefix'),
+        }
+    return None
